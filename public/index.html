@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Atlo</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
+
 <body>
   <div class="wrap">
     <header class="hero">
@@ -52,7 +54,7 @@
     <section class="map-focus">
       <div class="panel map-panel">
         <p id="status" class="muted">Waiting to load activities…</p>
-        <canvas id="map"></canvas>
+        <div id="map" aria-label="Activity map"></div>
       </div>
     </section>
 
@@ -66,4 +68,5 @@
 
   <script type="module" src="/app.js"></script>
 </body>
+
 </html>

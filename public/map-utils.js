@@ -1,19 +1,42 @@
-export function decodePolyline(str) {
-  let index = 0, lat = 0, lng = 0, points = [];
+// Import SDK modules (ES Modules)
+import { Map, MapStyle, config, Language, NavigationControl, LngLatBounds } from '@maptiler/sdk';
+import '@maptiler/sdk/dist/maptiler-sdk.css';
+
+const ROUTE_SOURCE_ID = "strava-routes";
+const ROUTE_LAYER_ID = "strava-routes-layer";
+const DEFAULT_VIEW = { center: [0, 0], zoom: 1.5 };
+
+let keyPromise;
+
+/**
+ * Decode Google-style polyline → array of [lat, lng]
+ */
+export function decodePolyline(str = "") {
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+  const points = [];
 
   while (index < str.length) {
     let b, shift = 0, result = 0;
 
-    do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; }
-    while (b >= 0x20);
+    do {
+      b = str.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
 
     const dlat = (result & 1) ? ~(result >> 1) : (result >> 1);
     lat += dlat;
 
-    shift = 0; result = 0;
+    shift = 0;
+    result = 0;
 
-    do { b = str.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; }
-    while (b >= 0x20);
+    do {
+      b = str.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
 
     const dlng = (result & 1) ? ~(result >> 1) : (result >> 1);
     lng += dlng;
@@ -24,55 +47,148 @@ export function decodePolyline(str) {
   return points;
 }
 
-export function drawPolylines(activities, canvas) {
-  const ctx = canvas.getContext("2d");
+/**
+ * Fetch your MapTiler API key
+ */
+async function fetchMaptilerKey() {
+  if (!keyPromise) {
+    keyPromise = fetch("/api/maptiler-key")
+      .then((res) => {
+        if (!res.ok) throw new Error("Unable to fetch the MapTiler API key.");
+        return res.json();
+      })
+      .then((payload) => {
+        if (!payload?.key) throw new Error("MapTiler API key is not configured.");
+        return payload.key;
+      });
+  }
+  return keyPromise;
+}
 
-  // Retina scaling
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  const dpr = window.devicePixelRatio || 1;
+/**
+ * Wait for map to finish loading
+ */
+function waitForMap(map) {
+  if (map.loaded()) return Promise.resolve(map);
+  return new Promise((resolve) => map.once("load", () => resolve(map)));
+}
 
-  canvas.width = width * dpr;
-  canvas.height = height * dpr;
-  ctx.scale(dpr, dpr);
+/**
+ * Convert activities with polylines → GeoJSON FeatureCollection
+ */
+function createFeatureCollection(activities) {
+  const features = activities
+    .filter((activity) => Boolean(activity?.polyline))
+    .map((activity, idx) => {
+      const decoded = decodePolyline(activity.polyline)
+        .map(([lat, lng]) => [lng, lat])  // Convert to [lng, lat]
+        .filter((pt) => Number.isFinite(pt[0]) && Number.isFinite(pt[1]));
 
-  ctx.clearRect(0, 0, width, height);
+      return decoded.length
+        ? {
+            type: "Feature",
+            properties: {
+              color: `hsl(${(idx * 57) % 360}, 70%, 55%)`
+            },
+            geometry: {
+              type: "LineString",
+              coordinates: decoded
+            }
+          }
+        : null;
+    })
+    .filter(Boolean);
 
-  if (!activities.length) return;
+  return { type: "FeatureCollection", features };
+}
 
-  const paths = activities.map(a => decodePolyline(a.polyline));
-  const flat = paths.flat();
+/**
+ * Auto-zoom map to fit all features
+ */
+function fitToFeatures(map, features) {
+  if (!features.length) {
+    map.easeTo({ center: DEFAULT_VIEW.center, zoom: DEFAULT_VIEW.zoom, duration: 600 });
+    return;
+  }
 
-  const lats = flat.map(p => p[0]);
-  const lngs = flat.map(p => p[1]);
+  const bounds = features.reduce((acc, feature) => {
+    feature.geometry.coordinates.forEach((coord) => acc.extend(coord));
+    return acc;
+  }, new LngLatBounds(
+    features[0].geometry.coordinates[0],
+    features[0].geometry.coordinates[0]
+  ));
 
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  map.fitBounds(bounds, { padding: 60, maxZoom: 12, duration: 900 });
+}
 
-  const pad = 30;
-  const w = width - pad * 2;
-  const h = height - pad * 2;
-
-  const scaleLng = w / Math.max(0.0001, maxLng - minLng);
-  const scaleLat = h / Math.max(0.0001, maxLat - minLat);
-  const scale = Math.min(scaleLng, scaleLat);
-
-  ctx.lineWidth = 2;
-  ctx.lineJoin = "round";
-  ctx.lineCap = "round";
-  ctx.globalAlpha = 0.9;
-
-  paths.forEach((path, idx) => {
-    ctx.beginPath();
-
-    path.forEach((p, i) => {
-      const x = pad + (p[1] - minLng) * scale;
-      const y = pad + h - (p[0] - minLat) * scale;
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+/**
+ * Ensure a single shared layer exists
+ */
+function ensureLayer(map) {
+  if (!map.getLayer(ROUTE_LAYER_ID)) {
+    map.addLayer({
+      id: ROUTE_LAYER_ID,
+      type: "line",
+      source: ROUTE_SOURCE_ID,
+      paint: {
+        "line-color": ["coalesce", ["get", "color"], "#38acbd"],
+        "line-width": 3,
+        "line-opacity": 0.85
+      }
     });
+  }
+}
 
-    ctx.strokeStyle = `hsl(${idx * 57 % 360}, 80%, 60%)`;
-    ctx.stroke();
+/**
+ * Update (or create) the shared GeoJSON source
+ */
+function updateSource(map, data) {
+  if (map.getSource(ROUTE_SOURCE_ID)) {
+    map.getSource(ROUTE_SOURCE_ID).setData(data);
+  } else {
+    map.addSource(ROUTE_SOURCE_ID, {
+      type: "geojson",
+      data
+    });
+  }
+}
+
+/**
+ * Initialize map using recommended MapTiler ES module API
+ */
+export async function initMap(container) {
+  const apiKey = await fetchMaptilerKey();
+  config.apiKey = apiKey;
+  config.primaryLanguage = Language.ENGLISH;
+
+  const map = new Map({
+    container,
+    style: MapStyle.STREETS,
+    center: DEFAULT_VIEW.center,
+    zoom: DEFAULT_VIEW.zoom
   });
+
+  await waitForMap(map);
+
+  map.addControl(new NavigationControl(), "top-right");
+
+  return map;
+}
+
+/**
+ * Render polyline activities on map (fully dynamic)
+ */
+export function renderPolylines(map, activities = []) {
+  if (!map) return;
+
+  const apply = () => {
+    const collection = createFeatureCollection(activities);
+    updateSource(map, collection);
+    ensureLayer(map);
+    fitToFeatures(map, collection.features);
+  };
+
+  if (map.loaded()) apply();
+  else map.once("load", apply);
 }

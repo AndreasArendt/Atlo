@@ -1,5 +1,4 @@
 import { api } from "./api.js";
-import { drawPolylines } from "./map-utils.js";
 import { setStatus, renderList } from "./ui.js";
 
 const els = {
@@ -8,7 +7,7 @@ const els = {
   status: document.getElementById("status"),
   list: document.getElementById("list"),
   count: document.getElementById("count"),
-  canvas: document.getElementById("map"),
+  map: document.getElementById("map"),
   startDate: document.getElementById("start-date"),
   endDate: document.getElementById("end-date"),
   rangeLabel: document.getElementById("range-label"),
@@ -68,8 +67,6 @@ async function loadActivities() {
     els.count.textContent = activities.length.toString();
     renderList(activities, els.list);
 
-    drawPolylines(activities, els.canvas);
-
     setStatus("Activities loaded.", "var(--success)");
   } catch (err) {
     console.error(err);
@@ -101,7 +98,8 @@ function applyRange(range) {
   loadActivities();
 }
 
-function init() {
+async function init() {
+  // Set default date range to past year
   applyRange("year");
 
   els.quickButtons.forEach((btn) => {
@@ -121,5 +119,7 @@ function init() {
 
   els.refresh.onclick = loadActivities;
 }
-
-init();
+init().catch((err) => {
+  console.error(err);
+  setStatus("Failed to initialize the app.", "var(--error)");
+});

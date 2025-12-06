@@ -2,6 +2,7 @@
   "name": "atlo",
   "type": "module",
   "dependencies": {
+    "@maptiler/sdk": "^3.9.0",
     "@vercel/kv": "^1.0.1"
   }
 }

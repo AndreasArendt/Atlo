@@ -174,11 +174,11 @@ input[type="date"] {
   gap: 12px;
 }
 
-canvas {
+#map {
   width: 100%;
   height: 520px;
   border-radius: 18px;
-  background: #0b1120;
+  overflow: hidden;
 }
 
 .activities-header {
@@ -260,6 +260,6 @@ li.muted {
   body { padding: 24px 12px; }
   .controls { flex-direction: column; align-items: flex-start; }
   .overview { width: 100%; justify-content: space-between; }
-  canvas { height: 60vh; }
+  #map { height: 60vh; }
   li { flex-direction: column; align-items: flex-start; }
 }
