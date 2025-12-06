@@ -23,10 +23,19 @@ export default function handler(req, res) {
   // Session binding: state in HttpOnly cookie to prevent cross-user leaks
   // Keep state cookie for 30 days to allow repeated API calls without re-auth
   const maxAge = 60 * 60 * 24 * 30;
-  res.setHeader(
-    "Set-Cookie",
-    `strava_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`
-  );
+
+  const isLocal = process.env.VERCEL_ENV === "development" || process.env.NODE_ENV === "development";
+
+  const cookie = isLocal
+    ? `strava_state=${state}; Path=/; HttpOnly; SameSite=Lax`
+    : `strava_state=${state}; Path=/; HttpOnly; SameSite=Lax; Secure`;
+
+  res.setHeader("Set-Cookie", cookie);
+
+  // res.setHeader(
+  //   "Set-Cookie",
+  //   `strava_state=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`
+  // );
 
   res.redirect("https://www.strava.com/oauth/authorize?" + params.toString());
 }

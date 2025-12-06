@@ -2,18 +2,6 @@ import { kv } from "@vercel/kv";
 
 export const config = { runtime: "nodejs" };
 
-function getCookie(req, name) {
-  const raw = req.headers.cookie;
-  if (!raw) return undefined;
-  const cookies = Object.fromEntries(
-    raw.split(";").map((c) => {
-      const [k, ...v] = c.trim().split("=");
-      return [k, v.join("=")];
-    })
-  );
-  return cookies[name];
-}
-
 export default async function handler(req, res) {
   try {
     // Fail fast if required env vars are missing to avoid generic 500s
@@ -25,7 +13,7 @@ export default async function handler(req, res) {
     }
 
     const { code, state } = req.query;
-    const cookieState = getCookie(req, "strava_state");
+    const cookieState = req.cookies?.strava_state;
 
     if (!state || !cookieState || state !== cookieState) {
       return res
