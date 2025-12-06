@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Atlo</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Atlo</h1>
+      <div class="btn-group">
+        <button id="connect">Connect Strava</button>
+        <button id="refresh">Load Activities</button>
+      </div>
+    </header>
+
+    <div class="panel">
+      <p id="status" class="muted">Waiting to load activities…</p>
+      <canvas id="map"></canvas>
+    </div>
+
+    <div class="panel">
+      <div class="pill" aria-label="Activity count"><span id="count">0</span> activities</div>
+      <ul id="list"></ul>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
