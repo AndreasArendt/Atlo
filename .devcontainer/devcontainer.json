@@ -4,8 +4,10 @@
     "dockerfile": "Dockerfile"
   },
   "remoteUser": "node",
-
   "forwardPorts": [3000],
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
   "postCreateCommand": "npm install @vercel/kv && npm install -g vercel",
 
@@ -18,9 +20,5 @@
         "esbenp.prettier-vscode"
       ]
     }
-  },
-
-  "mounts": [
-    "source=${localWorkspaceFolder}/.env.local,target=/workspace/.env.local,type=bind"
-  ]
+  }
 }

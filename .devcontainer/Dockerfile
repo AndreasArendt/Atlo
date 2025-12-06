@@ -9,4 +9,5 @@ RUN apt-get update && \
 
 # Switch back to the predefined non-root "node" user
 USER node
-WORKDIR /workspace
+
+WORKDIR /workspaces/Atlo
