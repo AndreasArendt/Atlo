@@ -6,8 +6,10 @@ if (!maptilersdk) {
 const ROUTE_SOURCE_ID = "strava-routes";
 const ROUTE_LAYER_ID = "strava-routes-layer";
 const DEFAULT_VIEW = { center: [0, 0], zoom: 1.5 };
+const STRAVA_ACTIVITY_URL = "https://www.strava.com/activities/";
 
 let keyPromise;
+let interactionsBound = false;
 
 /**
  * Decode Google-style polyline → array of [lat, lng]
@@ -109,7 +111,9 @@ function createFeatureCollection(activities) {
         ? {
             type: "Feature",
             properties: {
-              color: `hsl(${(idx * 57) % 360}, 70%, 55%)`
+              color: `hsl(${(idx * 57) % 360}, 70%, 55%)`,
+              activityId: activity.id ?? "",
+              activityUrl: activity.id ? `${STRAVA_ACTIVITY_URL}${activity.id}` : ""
             },
             geometry: {
               type: "LineString",
@@ -158,6 +162,10 @@ function ensureLayer(map) {
         "line-opacity": 0.85
       }
     });
+
+    bindLayerInteractions(map);
+  } else if (!interactionsBound) {
+    bindLayerInteractions(map);
   }
 }
 
@@ -217,4 +225,30 @@ export function renderPolylines(map, activities = []) {
   } else {
     map.once("load", apply);
   }
+}
+
+function bindLayerInteractions(map) {
+  if (interactionsBound) return;
+
+  const handleClick = (event) => {
+    const feature = event?.features?.[0];
+    const url = feature?.properties?.activityUrl;
+    if (url) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+  };
+
+  const setCursor = () => {
+    map.getCanvas().style.cursor = "pointer";
+  };
+
+  const resetCursor = () => {
+    map.getCanvas().style.cursor = "";
+  };
+
+  map.on("click", ROUTE_LAYER_ID, handleClick);
+  map.on("mouseenter", ROUTE_LAYER_ID, setCursor);
+  map.on("mouseleave", ROUTE_LAYER_ID, resetCursor);
+
+  interactionsBound = true;
 }
