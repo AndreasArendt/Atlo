@@ -58,34 +58,49 @@ export default async function handler(req, res) {
     const afterSeconds = toUnix(req.query.after, Math.floor(defaultAfter.getTime() / 1000));
     const beforeSeconds = toUnix(req.query.before, Math.floor(nowDate.getTime() / 1000));
 
-    const search = new URLSearchParams();
-    if (afterSeconds) search.set("after", afterSeconds.toString());
+    const baseParams = new URLSearchParams();
+    if (afterSeconds) baseParams.set("after", afterSeconds.toString());
     if (beforeSeconds && beforeSeconds > afterSeconds) {
-      search.set("before", beforeSeconds.toString());
+      baseParams.set("before", beforeSeconds.toString());
     }
 
-    const resp = await fetch(
-      `https://www.strava.com/api/v3/athlete/activities?${search.toString()}`,
-      {
-        headers: { Authorization: `Bearer ${token.access_token}` }
+    const perPage = 200;
+    let page = 1;
+    const simplified = [];
+
+    while (true) {
+      const params = new URLSearchParams(baseParams);
+      params.set("page", page.toString());
+      params.set("per_page", perPage.toString());
+
+      const resp = await fetch(
+        `https://www.strava.com/api/v3/athlete/activities?${params.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token.access_token}` }
+        }
+      );
+
+      if (!resp.ok) {
+        const msg = await resp.text();
+        return res.status(502).send(`Activities fetch failed: ${msg}`);
       }
-    );
 
-    if (!resp.ok) {
-      const msg = await resp.text();
-      return res.status(502).send(`Activities fetch failed: ${msg}`);
+      const data = await resp.json();
+      simplified.push(
+        ...data
+          .filter((a) => a.map && a.map.summary_polyline)
+          .map((a) => ({
+            polyline: a.map.summary_polyline,
+            type: a.type,
+            name: a.name,
+            id: a.id,
+            date: a.start_date
+          }))
+      );
+
+      if (data.length < perPage) break;
+      page += 1;
     }
-
-    const data = await resp.json();
-    const simplified = data
-      .filter((a) => a.map && a.map.summary_polyline)
-      .map((a) => ({
-        polyline: a.map.summary_polyline,
-        type: a.type,
-        name: a.name,
-        id: a.id,
-        date: a.start_date
-      }));
 
     return res.status(200).json(simplified);
   } catch (err) {

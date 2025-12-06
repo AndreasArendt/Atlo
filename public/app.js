@@ -88,8 +88,12 @@ function applyRange(range) {
     case "month":
       start.setMonth(end.getMonth() - 1);
       break;
-    default:
+    case "year":
       start.setFullYear(end.getFullYear() - 1);
+      break;
+    default:
+      start.setFullYear(2009, 2, 1); // Strava launch date
+      break;
   }
 
   setDateInputs(start, end);
