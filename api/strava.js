@@ -1,6 +1,18 @@
 import { kv } from "@vercel/kv";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 
 export const config = { runtime: "nodejs" };
+
+const LOGO_DATA_URI = (() => {
+  try {
+    const logoPath = path.join(process.cwd(), "logo/atlo.png");
+    const file = readFileSync(logoPath);
+    return `data:image/png;base64,${file.toString("base64")}`;
+  } catch {
+    return "https://atlo.vercel.app/logo/atlo.png";
+  }
+})();
 
 export default async function handler(req, res) {
   try {
@@ -42,9 +54,6 @@ export default async function handler(req, res) {
     // Persist per-user token securely with a reasonable TTL (30 days)
     const ttlSeconds = 60 * 60 * 24 * 30;
     await kv.set(`strava:token:${state}`, token, { ex: ttlSeconds });
-
-    const baseUrl = process.env.BASE_URL?.replace(/\/$/, "") || "";
-    const logoUrl = baseUrl ? `${baseUrl}/logo/atlo.png` : "https://atlo.vercel.app/logo/atlo.png";
 
     res.status(200).send(`
       <!doctype html>
@@ -92,9 +101,6 @@ export default async function handler(req, res) {
               height: 72px;
               border-radius: 18px;
               object-fit: contain;
-              background: #ecfeff;
-              padding: 12px;
-              box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
             }
             button {
               margin-top: 18px;
@@ -120,7 +126,7 @@ export default async function handler(req, res) {
         </head>
         <body>
           <div class="card">
-            <img src="${logoUrl}" alt="Atlo logo" class="logo" />
+            <img src="${LOGO_DATA_URI}" alt="Atlo logo" class="logo" />
             <h2>You're connected</h2>
             <p>You can close this window and return to Atlo. Your activities will refresh automatically.</p>
             <button onclick="window.close()">Close this window</button>

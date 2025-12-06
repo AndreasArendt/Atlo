@@ -82,11 +82,8 @@ function startAuthPolling() {
     const authed = await checkAuthStatus();
     if (authed) {
       stopAuthPolling();
-      if (authPopup && !authPopup.closed) {
-        authPopup.close();
-      }
-      authPopup = null;
       setConnectAttention(false);
+      hideStatusSpinner();
       loadActivities();
     }
   }, 2500);
@@ -95,9 +92,9 @@ function startAuthPolling() {
 function startAuthFlow(event) {
   event?.preventDefault();
   const popup = window.open("/api/start", "strava-auth", "width=640,height=760");
+  showStatusMessage("Complete the authentication popup, then return here.", "var(--muted)");
   if (popup) {
     popup.focus();
-    showStatusMessage("Complete the Strava authentication window, then return here.", "var(--muted)");
     startAuthPolling();
   } else {
     window.location.href = "/api/start";

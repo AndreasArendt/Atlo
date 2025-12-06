@@ -79,6 +79,8 @@ h1 {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  margin-top: 0;
+  align-self: flex-start;
 }
 
 button {
