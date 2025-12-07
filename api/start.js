@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { kv } from "@vercel/kv";
+import { buildStateCookieValue, STATE_COOKIE_NAME, STATE_TTL_SECONDS } from "../lib/state.js";
 
 export const config = { runtime: "nodejs" };
 
@@ -11,7 +13,7 @@ function createCookie(name, value, { maxAge, secure } = {}) {
   return parts.join("; ");
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   if (!process.env.STRAVA_CLIENT_ID || !process.env.STRAVA_CLIENT_SECRET) {
     return res
       .status(500)
@@ -21,6 +23,7 @@ export default function handler(req, res) {
   }
 
   const state = crypto.randomBytes(16).toString("hex");
+  const cookieValue = buildStateCookieValue(state);
 
   const params = new URLSearchParams({
     client_id: process.env.STRAVA_CLIENT_ID,
@@ -31,20 +34,18 @@ export default function handler(req, res) {
     state,
   });
 
-  // Session binding: state in HttpOnly cookie to prevent cross-user leaks
-  // Keep state cookie for 30 days to allow repeated API calls without re-auth
-  const maxAge = 60 * 60 * 24 * 30;
-
   const isLocal =
     process.env.VERCEL_ENV === "development" ||
     process.env.NODE_ENV === "development";
 
-  const cookie = createCookie("strava_state", state, {
-    maxAge,
+  const cookie = createCookie(STATE_COOKIE_NAME, cookieValue, {
+    maxAge: STATE_TTL_SECONDS,
     secure: !isLocal,
   });
 
   res.setHeader("Set-Cookie", cookie);
+
+  await kv.set(`strava:session:${state}`, { issuedAt: Date.now() }, { ex: STATE_TTL_SECONDS });
 
   res.redirect("https://www.strava.com/oauth/authorize?" + params.toString());
 }
