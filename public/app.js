@@ -142,7 +142,6 @@ async function loadActivities() {
 
     renderList(activities, els.list);
     setConnectAttention(false);
-    hideStatusSpinner();
   } catch (err) {
     console.error(err);
     if (AUTH_ERROR_PATTERN.test(err?.message || "")) {
@@ -150,6 +149,9 @@ async function loadActivities() {
     } else {
       showStatusMessage(err.message, "var(--error)");
     }
+  }
+  finally {
+    hideStatusSpinner();
   }
 }
 
