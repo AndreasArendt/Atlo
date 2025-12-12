@@ -468,12 +468,16 @@ li.muted {
 
 .pagination-controls button {
   background: transparent;
-  color: var(--text);
   border: 1px solid var(--border);
-  padding: 6px 18px;
+  padding: 0;
   box-shadow: none;
-  font-weight: 500;
   border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: var(--text);
 }
 
 .pagination-controls button:disabled {
