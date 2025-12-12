@@ -1,12 +1,10 @@
-import { getKvClient } from "../lib/database.js";
+import { kv } from "@vercel/kv";
 import { getSessionFromRequest, SESSION_TTL_SECONDS } from "../lib/session.js";
 
 export const config = { runtime: "nodejs" };
 
 export default async function handler(req, res) {
   try {
-    const kv = getKvClient();
-
     const state = getSessionFromRequest(req);
     if (!state) return res.status(401).send("Missing session state.");
 

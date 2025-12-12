@@ -1,5 +1,5 @@
 import { createCookie } from "../lib/cookie.js";
-import { getKvClient } from "../lib/database.js";
+import { kv } from "@vercel/kv";
 import {
   buildSessionCookieValue,
   createSession,
@@ -19,7 +19,6 @@ export default async function handler(req, res) {
       );
   }
 
-  const kv = getKvClient();
   let state = getSessionFromRequest(req);
 
   if (state) {
