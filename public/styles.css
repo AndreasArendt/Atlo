@@ -103,6 +103,29 @@ button.need-auth {
   box-shadow: 0 0 0 0 rgba(56, 172, 189, 0.55);
 }
 
+.btn-strava {
+  background: transparent;
+  padding: 0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.btn-strava img {
+  display: block;
+  height: 40px;
+  width: auto;
+  max-width: 100%;
+}
+
+.btn-strava.need-auth {
+  animation: authPulse 1.8s ease-in-out infinite;
+  box-shadow: 0 0 0 0 rgba(56, 172, 189, 0.55);
+}
+
+.btn-logout {
+  min-width: 160px;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);

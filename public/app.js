@@ -29,6 +29,9 @@ let currentPage = 1;
 const expandedActivities = new Set();
 let rangePickerInstance;
 const AUTH_ERROR_PATTERN = /(Not authenticated|Missing session state|No token)/i;
+const STRAVA_BUTTON_IMG = `<img src="/btn_strava_connect_with_orange.svg" alt="Connect with Strava" />`;
+const LOGOUT_BUTTON_LABEL = "Log out";
+let isAuthenticated = false;
 
 const toInputValue = (date) => {
   const tzOffset = date.getTimezoneOffset();
@@ -148,8 +151,29 @@ function setConnectAttention(active) {
   els.connect.classList.toggle("need-auth", Boolean(active));
 }
 
+function renderConnectButton(authenticated) {
+  if (!els.connect) return;
+  if (authenticated) {
+    els.connect.classList.remove("btn-strava");
+    els.connect.classList.add("btn-logout");
+    els.connect.textContent = LOGOUT_BUTTON_LABEL;
+    els.connect.setAttribute("aria-label", "Log out and clear stored data");
+  } else {
+    els.connect.classList.add("btn-strava");
+    els.connect.classList.remove("btn-logout");
+    els.connect.innerHTML = STRAVA_BUTTON_IMG;
+    els.connect.setAttribute("aria-label", "Connect with Strava");
+  }
+}
+
+function updateAuthUI(authenticated) {
+  isAuthenticated = authenticated;
+  renderConnectButton(authenticated);
+  setConnectAttention(!authenticated);
+}
+
 function handleAuthRequired(message) {
-  setConnectAttention(true);
+  updateAuthUI(false);
   showStatusMessage(message || "Connect Strava to load your activities.", "var(--muted)");
 }
 
@@ -188,7 +212,7 @@ function startAuthPolling() {
     const authed = await checkAuthStatus();
     if (authed) {
       stopAuthPolling();
-      setConnectAttention(false);
+      updateAuthUI(true);
       hideStatusSpinner();
       mapInstance = await initMap(els.map);
       loadActivities();
@@ -206,6 +230,31 @@ function startAuthFlow(event) {
   } else {
     window.location.href = "/api/start";
   }
+}
+
+async function handleLogout(event) {
+  event?.preventDefault();
+  showStatusMessage("Logging out and clearing your data...", "var(--muted)");
+  try {
+    const res = await fetch("/api/logout", { method: "POST", credentials: "include" });
+    if (!res.ok) throw new Error(await res.text());
+    activities = [];
+    expandedActivities.clear();
+    if (els.count) {
+      els.count.textContent = "0";
+    }
+    renderCurrentPage();
+    if (mapInstance) {
+      renderPolylines(mapInstance, []);
+    }
+    updateAuthUI(false);
+    showStatusMessage("Logged out and removed stored data.", "var(--muted)");
+  } catch (err) {
+    console.error("Logout failed:", err);
+    showStatusMessage(err.message || "Failed to log out.", "var(--error)");
+  }
+
+  activities = [];
 }
 
 async function loadActivities() {
@@ -236,7 +285,7 @@ async function loadActivities() {
 
     currentPage = 1;
     renderCurrentPage();
-    setConnectAttention(false);
+    updateAuthUI(true);
   } catch (err) {
     console.error(err);
     if (AUTH_ERROR_PATTERN.test(err?.message || "")) {
@@ -350,10 +399,19 @@ async function init() {
     });
   }
 
-  els.connect.addEventListener("click", startAuthFlow);
+  if (els.connect) {
+    renderConnectButton(false);
+    els.connect.addEventListener("click", (event) => {
+      if (isAuthenticated) {
+        handleLogout(event);
+      } else {
+        startAuthFlow(event);
+      }
+    });
+  }
 
   checkAuthStatus().then((authed) => {
-    setConnectAttention(!authed);
+    updateAuthUI(authed);
   });
 }
 init().catch((err) => {
