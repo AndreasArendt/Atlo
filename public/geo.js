@@ -1,5 +1,3 @@
-import { vec3, mat3 } from "https://cdn.jsdelivr.net/npm/gl-matrix@3.4.4/+esm";
-
 const WGS84_A = 6378137.0;
 const WGS84_F = 1 / 298.257223563;
 const WGS84_B = WGS84_A * (1 - WGS84_F);
