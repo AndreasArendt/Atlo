@@ -51,7 +51,8 @@ export default async function handler(req, res) {
     }
 
     const token = await tokenResponse.json();
-
+    delete token["athlete"]; // Remove athlete info to reduce stored data
+    
     // Persist per-user token securely with a reasonable TTL (30 days)
     const ttlSeconds = 60 * 60 * 24 * 30;
     await kv.set(`strava:token:${state}`, token, { ex: ttlSeconds });

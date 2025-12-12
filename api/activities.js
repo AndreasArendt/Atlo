@@ -71,8 +71,8 @@ export default async function handler(req, res) {
 }
 
 async function rateLimit(req, res) {
-  const ip = req.ip || req.headers["x-forwarded-for"] || "unknown";
-  const key = `rate-limit:${ip}`;
+  const state = getSessionFromRequest(req);
+  const key = `rate-limit:${state}`;
 
   const limit = 100; // Max requests
   const windowSeconds = 15 * 60; // 15 minutes
