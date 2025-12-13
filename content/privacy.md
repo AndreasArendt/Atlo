@@ -1,6 +1,6 @@
 # Privacy Policy and Data Usage Declaration
 
-**Last updated:** 12.12.2025
+**Last updated:** 13.12.2025
 
 ## 1. Introduction
 This website (“the Application”) integrates with the Strava API to provide authenticated access to Strava services. The Application is designed according to the principles of data minimization, purpose limitation, and privacy by design.
@@ -61,4 +61,4 @@ This policy may be updated if data handling practices change. Any updates will c
 ## 10. Contact
 For privacy-related inquiries:
 
-**Email:** andi.arendt@icloud.com
+**Email:** info@atlo.me
