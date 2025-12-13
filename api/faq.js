@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { marked } from "marked";
 
-const PRIVACY_MD_PATH = path.join(process.cwd(), "content", "privacy.md");
+const FAQ_MD_PATH = path.join(process.cwd(), "content", "faq.md");
 
 export const config = { runtime: "nodejs" };
 
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const markdown = await readFile(PRIVACY_MD_PATH, "utf8");
+    const markdown = await readFile(FAQ_MD_PATH, "utf8");
     const html = marked.parse(markdown);
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         <head>
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>Privacy Policy</title>
+          <title>FAQ</title>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
           <link
@@ -32,13 +32,13 @@ export default async function handler(req, res) {
           />
           <link rel="stylesheet" href="/markdown.css" />
         </head>
-        <body class="privacy-page">
-          <main class="privacy-content">${html}</main>
+        <body class="markdown-page">
+          <main class="markdown-content">${html}</main>
         </body>
       </html>
     `);
   } catch (err) {
-    console.error("Error loading privacy policy:", err);
-    return res.status(500).send("Unable to load privacy policy.");
+    console.error("Error loading FAQ page:", err);
+    return res.status(500).send("Unable to load FAQ page.");
   }
 }

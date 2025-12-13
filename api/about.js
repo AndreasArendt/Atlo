@@ -30,7 +30,7 @@ export default async function handler(req, res) {
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap"
             rel="stylesheet"
           />
-          <link rel="stylesheet" href="/about.css" />
+          <link rel="stylesheet" href="/markdown.css" />
         </head>
         <body class="markdown-page">
           <main class="markdown-content">${html}</main>

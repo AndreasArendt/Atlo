@@ -605,6 +605,16 @@ li.muted {
   line-height: 1.5;
 }
 
+.cookie-banner-text a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.cookie-banner-text a:hover {
+  text-decoration: underline;
+}
+
 .cookie-banner-actions {
   display: flex;
   justify-content: center;
