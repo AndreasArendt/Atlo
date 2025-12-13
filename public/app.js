@@ -1,6 +1,16 @@
 import { api } from "./api.js";
-import { renderList, showStatusSpinner, hideStatusSpinner, showStatusMessage } from "./ui.js";
-import { initMap, renderPolylines, applyMapStyle, DEFAULT_MAP_STYLE_ID } from "./map.js";
+import {
+  renderList,
+  showStatusSpinner,
+  hideStatusSpinner,
+  showStatusMessage,
+} from "./ui.js";
+import {
+  initMap,
+  renderPolylines,
+  applyMapStyle,
+  DEFAULT_MAP_STYLE_ID,
+} from "./map.js";
 
 const els = {
   connect: document.getElementById("connect"),
@@ -30,7 +40,8 @@ const PAGE_SIZE = 10;
 let currentPage = 1;
 const expandedActivities = new Set();
 let rangePickerInstance;
-const AUTH_ERROR_PATTERN = /(Not authenticated|Missing session state|No token)/i;
+const AUTH_ERROR_PATTERN =
+  /(Not authenticated|Missing session state|No token)/i;
 const STRAVA_BUTTON_IMG = `<img src="/btn_strava_connect_with_orange.svg" alt="Connect with Strava" />`;
 const LOGOUT_BUTTON_LABEL = "Log out";
 let isAuthenticated = false;
@@ -44,7 +55,10 @@ const toInputValue = (date) => {
 
 const formatRangeLabel = (start, end) => {
   const opts = { month: "short", day: "numeric", year: "numeric" };
-  return `${start.toLocaleDateString(undefined, opts)} → ${end.toLocaleDateString(undefined, opts)}`;
+  return `${start.toLocaleDateString(
+    undefined,
+    opts
+  )} → ${end.toLocaleDateString(undefined, opts)}`;
 };
 
 function setDateInputs(startDate, endDate, syncPicker = true) {
@@ -112,7 +126,8 @@ function getTotalPages() {
 }
 
 function updatePaginationControls() {
-  if (!els.pagination || !els.pageIndicator || !els.prevPage || !els.nextPage) return;
+  if (!els.pagination || !els.pageIndicator || !els.prevPage || !els.nextPage)
+    return;
   const totalPages = getTotalPages();
   const shouldShow = activities.length > PAGE_SIZE;
   els.pagination.hidden = !shouldShow;
@@ -178,7 +193,9 @@ function persistCookieChoice(value) {
 }
 
 function initCookieBanner() {
-  if (!els.cookieBanner) return;
+  if (!els.cookieBanner) {
+    return Promise.resolve(false);
+  }
 
   let stored = null;
   try {
@@ -189,24 +206,27 @@ function initCookieBanner() {
 
   if (stored === "accepted") {
     els.cookieBanner.hidden = true;
-    return;
+    return Promise.resolve(true);
   }
 
   els.cookieBanner.hidden = false;
-
-  const hideBanner = () => {
-    els.cookieBanner.hidden = true;
-  };
-
-  els.cookieAccept?.addEventListener("click", () => {
-    persistCookieChoice("accepted");
-    hideBanner();
-  });
 
   const privacyLink = els.cookieBanner.querySelector("a.ghost");
   if (privacyLink) {
     privacyLink.setAttribute("rel", "noreferrer");
   }
+
+  return new Promise((resolve) => {
+    const acceptHandler = () => {
+      persistCookieChoice("accepted");
+      els.cookieBanner.hidden = true;
+
+      els.cookieAccept?.removeEventListener("click", acceptHandler);
+      resolve(true);
+    };
+
+    els.cookieAccept?.addEventListener("click", acceptHandler);
+  });
 }
 
 function updateAuthUI(authenticated) {
@@ -217,13 +237,16 @@ function updateAuthUI(authenticated) {
 
 function handleAuthRequired(message) {
   updateAuthUI(false);
-  showStatusMessage(message || "Connect Strava to load your activities.", "var(--muted)");
+  showStatusMessage(
+    message || "Connect Strava to load your activities.",
+    "var(--muted)"
+  );
 }
 
 async function ensureSessionCookie() {
   const res = await fetch("/api/session", {
     method: "POST",
-    credentials: "include"
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -265,8 +288,15 @@ function startAuthPolling() {
 
 function startAuthFlow(event) {
   event?.preventDefault();
-  const popup = window.open("/api/start", "strava-auth", "width=640,height=760");
-  showStatusMessage("Complete the authentication popup, then return here.", "var(--muted)");
+  const popup = window.open(
+    "/api/start",
+    "strava-auth",
+    "width=640,height=760"
+  );
+  showStatusMessage(
+    "Complete the authentication popup, then return here.",
+    "var(--muted)"
+  );
   if (popup) {
     popup.focus();
     startAuthPolling();
@@ -279,7 +309,10 @@ async function handleLogout(event) {
   event?.preventDefault();
   showStatusMessage("Logging out and clearing your data...", "var(--muted)");
   try {
-    const res = await fetch("/api/logout", { method: "POST", credentials: "include" });
+    const res = await fetch("/api/logout", {
+      method: "POST",
+      credentials: "include",
+    });
     if (!res.ok) throw new Error(await res.text());
     activities = [];
     expandedActivities.clear();
@@ -308,7 +341,10 @@ async function loadActivities() {
   }
 
   if (start > end) {
-    showStatusMessage("The start date has to be before the end date.", "var(--error)");
+    showStatusMessage(
+      "The start date has to be before the end date.",
+      "var(--error)"
+    );
     return;
   }
 
@@ -316,7 +352,10 @@ async function loadActivities() {
   showStatusSpinner();
 
   try {
-    const params = new URLSearchParams({ after: els.startDate.value, before: els.endDate.value });
+    const params = new URLSearchParams({
+      after: els.startDate.value,
+      before: els.endDate.value,
+    });
     activities = await api(`/api/activities?${params.toString()}`);
 
     els.count.textContent = activities.length.toString();
@@ -336,8 +375,7 @@ async function loadActivities() {
     } else {
       showStatusMessage(err.message, "var(--error)");
     }
-  }
-  finally {
+  } finally {
     hideStatusSpinner();
   }
 }
@@ -383,11 +421,35 @@ function changeMapStyle(styleId) {
 }
 
 async function init() {
+  const hostname = window?.location?.hostname || "";
+  const isLocal =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.endsWith(".local");
+
+  if (isLocal) {
+    try {
+      // Clear persisted state while working locally so changes are easy to test.
+      window.localStorage.clear();
+    } catch {
+      window.localStorage.removeItem(COOKIE_CONSENT_KEY);
+    }
+  }
+
+  const consentGiven = await initCookieBanner();
+
+  if (!consentGiven) {
+    return;
+  }
+
   try {
     await ensureSessionCookie();
   } catch (err) {
     console.error("Failed to establish session:", err);
-    showStatusMessage("Unable to initialize your session. Reload the page and try again.", "var(--error)");
+    showStatusMessage(
+      "Unable to initialize your session. Reload the page and try again.",
+      "var(--error)"
+    );
     return;
   }
 
@@ -452,8 +514,6 @@ async function init() {
       }
     });
   }
-
-  initCookieBanner();
 
   checkAuthStatus().then((authed) => {
     updateAuthUI(authed);
