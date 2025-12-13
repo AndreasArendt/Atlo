@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { marked } from "marked";
+import { renderSafeMarkdown } from "../lib/markdownSanitizer.js";
 
 const PRIVACY_MD_PATH = path.join(process.cwd(), "content", "privacy.md");
 
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   try {
     const markdown = await readFile(PRIVACY_MD_PATH, "utf8");
-    const html = marked.parse(markdown);
+    const safeHtml = renderSafeMarkdown(markdown);
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     return res.status(200).send(`
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
           <link rel="stylesheet" href="/markdown.css" />
         </head>
         <body class="privacy-page">
-          <main class="privacy-content">${html}</main>
+          <main class="privacy-content">${safeHtml}</main>
         </body>
       </html>
     `);

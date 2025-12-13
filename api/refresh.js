@@ -9,7 +9,7 @@ export default async function handler(req, res) {
       "STRAVA_CLIENT_ID",
       "STRAVA_CLIENT_SECRET",
       "KV_REST_API_URL",
-      "KV_REST_API_TOKEN"
+      "KV_REST_API_TOKEN",
     ].filter((k) => !process.env[k]);
     if (missing.length) {
       return res.status(500).send(`Missing env vars: ${missing.join(", ")}`);
@@ -20,7 +20,8 @@ export default async function handler(req, res) {
 
     const sessionKey = `atlo:session:${state}`;
     const session = await kv.get(sessionKey);
-    if (!session) return res.status(401).send("Session expired; please authenticate.");
+    if (!session)
+      return res.status(401).send("Session expired; please authenticate.");
     await kv.expire(sessionKey, SESSION_TTL_SECONDS);
 
     const current = await kv.get(`strava:token:${state}`);
@@ -35,8 +36,8 @@ export default async function handler(req, res) {
         client_id: process.env.STRAVA_CLIENT_ID,
         client_secret: process.env.STRAVA_CLIENT_SECRET,
         grant_type: "refresh_token",
-        refresh_token: current.refresh_token
-      })
+        refresh_token: current.refresh_token,
+      }),
     });
 
     if (!resp.ok) {
@@ -49,7 +50,10 @@ export default async function handler(req, res) {
     await kv.set(`strava:token:${state}`, token, { ex: ttlSeconds });
     await kv.expire(sessionKey, SESSION_TTL_SECONDS);
 
-    return res.status(200).json(token);
+    return res.status(200).json({
+      authenticated: true,
+      expiresAt: token.expires_at,
+    });
   } catch (err) {
     console.log("Error in /api/refresh:", err.message);
     return res.status(500).send("Internal error");

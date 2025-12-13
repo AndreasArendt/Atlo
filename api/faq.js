@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { marked } from "marked";
+import { renderSafeMarkdown } from "../lib/markdownSanitizer.js";
 
 const FAQ_MD_PATH = path.join(process.cwd(), "content", "faq.md");
 
@@ -14,7 +14,7 @@ export default async function handler(req, res) {
 
   try {
     const markdown = await readFile(FAQ_MD_PATH, "utf8");
-    const html = marked.parse(markdown);
+    const safeHtml = renderSafeMarkdown(markdown);
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     return res.status(200).send(`
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
           <link rel="stylesheet" href="/markdown.css" />
         </head>
         <body class="markdown-page">
-          <main class="markdown-content">${html}</main>
+          <main class="markdown-content">${safeHtml}</main>
         </body>
       </html>
     `);
