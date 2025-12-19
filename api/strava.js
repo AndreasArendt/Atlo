@@ -27,10 +27,18 @@ export default async function handler(req, res) {
 
     const { code, state } = req.query;
 
-    const raw = req.cookies?.[SESSION_COOKIE_NAME];
+    // Handle environments where req.cookies might be missing by parsing the header manually
+    const headerCookie = req.headers?.cookie || "";
+    const headerValue = headerCookie
+      .split(";")
+      .map((c) => c.trim())
+      .find((c) => c.startsWith(`${SESSION_COOKIE_NAME}=`))
+      ?.slice(SESSION_COOKIE_NAME.length + 1);
+
+    const raw = req.cookies?.[SESSION_COOKIE_NAME] ?? headerValue;
     const decoded = raw ? decodeURIComponent(raw) : null;
     const cookieState = extractSessionFromCookie(decoded);
-    const debugInfo = `query=${JSON.stringify(req.query)} | sessionCookie=${decoded ?? "none"} | raw=${(raw)}`;
+    const debugInfo = `query=${JSON.stringify(req.query)} | sessionCookie=${decoded ?? "none"} | raw=${raw ?? "undefined"}`;
 
     if (!state || !cookieState || state !== cookieState) {
       return res
