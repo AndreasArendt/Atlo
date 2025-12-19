@@ -28,6 +28,9 @@ export default async function handler(req, res) {
     const { code, state } = req.query;
     const cookieState = extractSessionFromCookie(req.cookies?.[SESSION_COOKIE_NAME]);
 
+    console.log(req.query);
+    console.low(req.cookies?.[SESSION_COOKIE_NAME]);
+
     if (!state || !cookieState || state !== cookieState) {
       return res
         .status(400)
