@@ -46,8 +46,21 @@ export default async function handler(req, res) {
     state,
   });
 
+  // Try to ensure the cookie covers both apex and www
+  const host = req.headers.host;
+  let cookieDomain = process.env.COOKIE_DOMAIN;
+  if (!cookieDomain && host) {
+    const hostname = host.split(":")[0];
+    if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+      cookieDomain = `.${hostname.replace(/^www\./, "")}`;
+    }
+  }
+
   const cookie = createCookie(SESSION_COOKIE_NAME, cookieValue, {
     maxAge: SESSION_TTL_SECONDS,
+    sameSite: "None", // needed so Strava redirect includes cookie
+    secure: true,
+    domain: cookieDomain,
   });
 
   res.setHeader("Set-Cookie", cookie);
