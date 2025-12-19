@@ -38,7 +38,13 @@ export default async function handler(req, res) {
     const raw = req.cookies?.[SESSION_COOKIE_NAME] ?? headerValue;
     const decoded = raw ? decodeURIComponent(raw) : null;
     const cookieState = extractSessionFromCookie(decoded);
-    const debugInfo = `query=${JSON.stringify(req.query)} | sessionCookie=${decoded ?? "none"} | raw=${raw ?? "undefined"}`;
+    const debugInfo = [
+      `query=${JSON.stringify(req.query)}`,
+      `sessionCookie=${decoded ?? "none"}`,
+      `raw=${raw ?? "undefined"}`,
+      `headerCookie=${headerCookie || "none"}`,
+      `hasReqCookies=${req.cookies ? "yes" : "no"}`
+    ].join(" | ");
 
     if (!state || !cookieState || state !== cookieState) {
       return res
