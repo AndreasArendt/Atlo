@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     const raw = req.cookies?.[SESSION_COOKIE_NAME];
     const decoded = raw ? decodeURIComponent(raw) : null;
     const cookieState = extractSessionFromCookie(decoded);
-    const debugInfo = `query=${JSON.stringify(req.query)} | sessionCookie=${decoded ?? "none"}`;
+    const debugInfo = `query=${JSON.stringify(req.query)} | sessionCookie=${decoded ?? "none"} | raw=${(raw)}`;
 
     if (!state || !cookieState || state !== cookieState) {
       return res
