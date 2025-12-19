@@ -43,7 +43,10 @@ export default async function handler(req, res) {
       `sessionCookie=${decoded ?? "none"}`,
       `raw=${raw ?? "undefined"}`,
       `headerCookie=${headerCookie || "none"}`,
-      `hasReqCookies=${req.cookies ? "yes" : "no"}`
+      `reqCookies=${req.cookies ? JSON.stringify(req.cookies) : "missing"}`,
+      `host=${req.headers?.host ?? "none"}`,
+      `referer=${req.headers?.referer ?? "none"}`,
+      `origin=${req.headers?.origin ?? "none"}`
     ].join(" | ");
 
     if (!state || !cookieState || state !== cookieState) {
