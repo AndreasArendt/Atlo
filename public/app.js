@@ -1,6 +1,7 @@
 import { api } from "./api.js";
 import {
   renderList,
+  renderSummary,
   showStatusSpinner,
   hideStatusSpinner,
   showStatusMessage,
@@ -10,6 +11,7 @@ import {
   renderPolylines,
   applyMapStyle,
   DEFAULT_MAP_STYLE_ID,
+  focusActivity,
 } from "./map.js";
 
 const els = {
@@ -23,6 +25,7 @@ const els = {
   rangeLabel: document.getElementById("range-label"),
   quickButtons: document.querySelectorAll("[data-range]"),
   mapStyleButtons: document.querySelectorAll("[data-map-style]"),
+  summaryStyleButtons: document.querySelectorAll("[activity-summary-style]"),
   pagination: document.getElementById("activity-pagination"),
   prevPage: document.getElementById("prev-page"),
   nextPage: document.getElementById("next-page"),
@@ -30,12 +33,15 @@ const els = {
   rangePickerInput: document.getElementById("date-range-picker"),
   cookieBanner: document.getElementById("cookie-banner"),
   cookieAccept: document.getElementById("cookie-accept"),
-  activityFilterButtons: document.getElementById('map-filter-buttons'),
+  activityFilterButtons: document.getElementById('activity-filter-buttons'),
+  activitySummaryButtons: document.getElementById('activitiy-summary-button'),
 };
 
 let allActivities = [];
 let displayActivities = [];
 let currentActivityFilter = 'All';
+
+let activeSummaryStyle = 'all';
 
 let mapInstance;
 let activeMapStyle = DEFAULT_MAP_STYLE_ID;
@@ -383,18 +389,24 @@ async function loadActivities() {
   }
 }
 
-function updateActivityDisplay() {
+function updateActivityDisplay({ skipMapUpdate = false } = {}) {
   showStatusSpinner();
 
-  try
-  {
+  try {
+    const isSummary = activeSummaryStyle === "summary";
+    if (els.pagination) {
+      els.pagination.hidden = isSummary;
+      els.pagination.classList.toggle("display-summary", isSummary);
+    }
+
     if (!allActivities.length) {
       displayActivities = [];
       els.count.textContent = "0";
       expandedActivities.clear();
-      if (mapInstance) {
+      if (!skipMapUpdate && mapInstance) {
         renderPolylines(mapInstance, []);
       }
+      renderList([], els.list);
       currentPage = 1;
       renderCurrentPage();
       updatePaginationControls();
@@ -402,18 +414,31 @@ function updateActivityDisplay() {
     }
 
     applyActivityFilter(currentActivityFilter);
-  
+
     els.count.textContent = displayActivities.length.toString();
     expandedActivities.clear();
-    
-    if (mapInstance) {
+
+    if (!skipMapUpdate && mapInstance) {
       renderPolylines(mapInstance, displayActivities);
     }
-  
+
+    if (isSummary) {
+      const totals = displayActivities.reduce(
+        (acc, item) => {
+          acc.distance += Number(item.distance) || 0;
+          acc.movingTime += Number(item.movingTime) || 0;
+          acc.elevationGain += Number(item.elevationGain) || 0;
+          return acc;
+        },
+        { distance: 0, movingTime: 0, elevationGain: 0 }
+      );
+      renderSummary(totals, displayActivities.length, els.list);
+      return;
+    }
+
     currentPage = 1;
     renderCurrentPage();
-  }
-  finally {
+  } finally {
     hideStatusSpinner();
   }
 }
@@ -443,6 +468,24 @@ function setActiveActivityFilterButton(filterLabel = "All") {
     (btn) => {
       const label = (btn.dataset.filter || btn.textContent || "").trim();
       btn.classList.toggle("active", label === filterLabel);
+    }
+  );
+}
+
+function setActiveActivitySummaryButton(filterLabel = "all") {
+  if (!els.activitySummaryButtons) return;
+  const normalized = (filterLabel || "").toString().toLowerCase();
+  Array.from(els.activitySummaryButtons.querySelectorAll("button")).forEach(
+    (btn) => {
+      const label =
+        btn.getAttribute("activity-summary-style") ||
+        btn.dataset.filter ||
+        btn.textContent ||
+        "";
+      btn.classList.toggle(
+        "active",
+        label.toString().toLowerCase() === normalized
+      );
     }
   );
 }
@@ -536,20 +579,138 @@ function changeMapStyle(styleId) {
   }
 }
 
-async function init() {
+function changeSummaryStyle(styleId) {
+  const next = (styleId || "").toString().toLowerCase();
+  if (!next || next === activeSummaryStyle) return;
+
+  activeSummaryStyle = next;
+  setActiveActivitySummaryButton(next);
+  updateActivityDisplay({ skipMapUpdate: true });
+}
+
+function isLocalHost() {
   const hostname = window?.location?.hostname || "";
-  const isLocal =
+  return (
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
-    hostname.endsWith(".local");
+    hostname.endsWith(".local")
+  );
+}
 
-  if (isLocal) {
-    try {
-      // Clear persisted state while working locally so changes are easy to test.
-      window.localStorage.clear();
-    } catch {
-      window.localStorage.removeItem(COOKIE_CONSENT_KEY);
+function clearLocalStateForDev() {
+  try {
+    window.localStorage.clear();
+  } catch {
+    window.localStorage.removeItem(COOKIE_CONSENT_KEY);
+  }
+}
+
+function bindRangeButtons() {
+  els.quickButtons.forEach((btn) => {
+    btn.addEventListener("click", () => applyRange(btn.dataset.range));
+  });
+}
+
+function bindMapStyleButtons() {
+  els.mapStyleButtons.forEach((btn) => {
+    btn.addEventListener("click", () => changeMapStyle(btn.dataset.mapStyle));
+  });
+}
+
+function bindSummaryStyleButtons() {
+  els.summaryStyleButtons.forEach((btn) => {
+    btn.addEventListener("click", () =>
+      changeSummaryStyle(btn.getAttribute("activity-summary-style"))
+    );
+  });
+}
+
+function bindPaginationControls() {
+  if (!els.prevPage || !els.nextPage) return;
+  els.prevPage.addEventListener("click", () => {
+    if (currentPage === 1) return;
+    currentPage -= 1;
+    renderCurrentPage();
+  });
+
+  els.nextPage.addEventListener("click", () => {
+    const totalPages = getTotalPages();
+    if (currentPage >= totalPages) return;
+    currentPage += 1;
+    renderCurrentPage();
+  });
+}
+
+function bindListToggle() {
+  if (!els.list) return;
+  els.list.addEventListener("click", (event) => {
+    const focusButton = event.target.closest("[data-activity-focus]");
+    if (focusButton) {
+      const activityId = focusButton.getAttribute("data-activity-focus");
+      const activity = displayActivities.find(
+        (a) => String(a.id) === String(activityId)
+      );
+      if (activity && mapInstance) {
+        focusActivity(mapInstance, activity);
+      }
+      return;
     }
+
+    const toggle = event.target.closest("[data-activity-toggle]");
+    if (!toggle) return;
+    const activityId = toggle.getAttribute("data-activity-toggle");
+    if (!activityId) return;
+    const key = String(activityId);
+    if (expandedActivities.has(key)) {
+      expandedActivities.delete(key);
+    } else {
+      expandedActivities.add(key);
+    }
+    renderCurrentPage();
+  });
+}
+
+function bindConnectButton() {
+  if (!els.connect) return;
+  renderConnectButton(false);
+  els.connect.addEventListener("click", (event) => {
+    if (isAuthenticated) {
+      handleLogout(event);
+    } else {
+      startAuthFlow(event);
+    }
+  });
+}
+
+async function establishSession() {
+  try {
+    await ensureSessionCookie();
+    return true;
+  } catch (err) {
+    console.error("Failed to establish session:", err);
+    showStatusMessage(
+      "Unable to initialize your session. Reload the page and try again.",
+      "var(--error)"
+    );
+    return false;
+  }
+}
+
+async function initMapInstance() {
+  try {
+    mapInstance = await initMap(els.map);
+    return true;
+  } catch (err) {
+    console.error(err);
+    showStatusMessage(err.message || "Failed to load the map.", "var(--error)");
+    return false;
+  }
+}
+
+async function init() {
+  if (isLocalHost()) {
+    // Clear persisted state while working locally so changes are easy to test.
+    //clearLocalStateForDev();
   }
 
   const consentGiven = await initCookieBanner();
@@ -558,78 +719,30 @@ async function init() {
     return;
   }
 
-  try {
-    await ensureSessionCookie();
-  } catch (err) {
-    console.error("Failed to establish session:", err);
-    showStatusMessage(
-      "Unable to initialize your session. Reload the page and try again.",
-      "var(--error)"
-    );
+  // add connect button once consent given
+  els.connect?.classList.add("cookie-consent-given");
+
+  bindRangeButtons();
+  bindMapStyleButtons();
+  bindSummaryStyleButtons();
+  bindPaginationControls();
+  bindListToggle();
+  bindConnectButton();
+  setActiveMapStyle(activeMapStyle);
+  setActiveActivitySummaryButton(activeSummaryStyle);
+
+  const hasSession = await establishSession();
+  if (!hasSession) {
     return;
   }
 
-  try {
-    mapInstance = await initMap(els.map);
-  } catch (err) {
-    console.error(err);
-    showStatusMessage(err.message || "Failed to load the map.", "var(--error)");
+  const mapReady = await initMapInstance();
+  if (!mapReady) {
+    return;
   }
 
   applyRange("year");
   initRangePicker();
-
-  els.quickButtons.forEach((btn) => {
-    btn.addEventListener("click", () => applyRange(btn.dataset.range));
-  });
-
-  els.mapStyleButtons.forEach((btn) => {
-    btn.addEventListener("click", () => changeMapStyle(btn.dataset.mapStyle));
-  });
-
-  setActiveMapStyle(activeMapStyle);
-
-  if (els.prevPage && els.nextPage) {
-    els.prevPage.addEventListener("click", () => {
-      if (currentPage === 1) return;
-      currentPage -= 1;
-      renderCurrentPage();
-    });
-
-    els.nextPage.addEventListener("click", () => {
-      const totalPages = getTotalPages();
-      if (currentPage >= totalPages) return;
-      currentPage += 1;
-      renderCurrentPage();
-    });
-  }
-
-  if (els.list) {
-    els.list.addEventListener("click", (event) => {
-      const toggle = event.target.closest("[data-activity-toggle]");
-      if (!toggle) return;
-      const activityId = toggle.getAttribute("data-activity-toggle");
-      if (!activityId) return;
-      const key = String(activityId);
-      if (expandedActivities.has(key)) {
-        expandedActivities.delete(key);
-      } else {
-        expandedActivities.add(key);
-      }
-      renderCurrentPage();
-    });
-  }
-
-  if (els.connect) {
-    renderConnectButton(false);
-    els.connect.addEventListener("click", (event) => {
-      if (isAuthenticated) {
-        handleLogout(event);
-      } else {
-        startAuthFlow(event);
-      }
-    });
-  }
 
   checkAuthStatus().then((authed) => {
     updateAuthUI(authed);

@@ -93,21 +93,17 @@ button {
   font-weight: 600;
   cursor: pointer;
   transition: transform 120ms ease, box-shadow 120ms ease;
-  box-shadow: 0 10px 25px rgba(14, 165, 233, 0.25);
 }
 button:hover { transform: translateY(-1px); }
 button:active { transform: translateY(0); }
-
-button.need-auth {
-  animation: authPulse 1.8s ease-in-out infinite;
-  box-shadow: 0 0 0 0 rgba(56, 172, 189, 0.55);
-}
 
 .btn-strava {
   background: transparent;
   padding: 0;
   border-radius: 999px;
-  overflow: hidden;
+  overflow: hidden;  
+  box-shadow: 0 10px 25px rgba(254, 131, 79, 0.25);  
+  display: none;
 }
 
 .btn-strava img {
@@ -120,6 +116,10 @@ button.need-auth {
 .btn-strava.need-auth {
   animation: authPulse 1.8s ease-in-out infinite;
   box-shadow: 0 0 0 0 rgba(56, 172, 189, 0.55);
+}
+
+.btn-strava.cookie-consent-given {
+  display: block;
 }
 
 .btn-logout {
@@ -308,7 +308,7 @@ button.need-auth {
 }
 
 /* Map Activity Filter */
-.map-filter-card {
+.filter-card {
   margin-right: auto;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 12px;
@@ -317,27 +317,27 @@ button.need-auth {
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.05);
 }
 
-.map-filter-controls {
+.filter-controls {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 14px;
 }
 
-.map-filter-label {
+.filter-label {
   font-size: 11px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
-.map-filter-buttons {
+.filter-buttons {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.map-filter-buttons button {
+.filter-buttons button {
   background: transparent;
   color: var(--muted);
   border: 1px solid rgba(15, 23, 42, 0.08);
@@ -349,12 +349,12 @@ button.need-auth {
   transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
 }
 
-.map-filter-buttons button:hover {
+.filter-buttons button:hover {
   border-color: rgba(15, 23, 42, 0.25);
   color: var(--text);
 }
 
-.map-filter-buttons button.active {
+.filter-buttons button.active {
   color: var(--text);
   border-color: rgba(15, 23, 42, 0.3);
   background: rgba(15, 23, 42, 0.04);
@@ -405,16 +405,8 @@ button.need-auth {
   display: block;
 }
 
-.activities-header {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: baseline;
-}
-
-.activities-header h2 {
-  margin: 0;
+.pagination-controls.display-summary {
+  display: none;
 }
 
 .muted {
@@ -464,6 +456,15 @@ li.muted {
   flex-wrap: wrap;
 }
 
+.activity-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .activity-title {
   display: flex;
   flex-direction: column;
@@ -505,6 +506,7 @@ li.muted {
   color: var(--muted);
 }
 
+.activity-map-link,
 .activity-strava-link {
   display: inline-flex;
   align-items: center;
@@ -514,10 +516,33 @@ li.muted {
   font-weight: 600;
   padding: 8px 14px;
   border-radius: 999px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.activity-map-link {
+  border: 1px solid rgba(17, 60, 76, 0.25);
+  background: rgba(17, 60, 76, 0.08);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.activity-map-link i {
+  color: var(--accent);
+}
+
+.activity-map-link:hover {
+  box-shadow: 0 10px 25px rgba(17, 60, 76, 0.15);
+  transform: translateY(-1px);
+}
+
+.activity-map-link:active {
+  transform: translateY(0);
+}
+
+.activity-strava-link {
   border: 1px solid rgba(252, 76, 2, 0.3);
   color: var(--text);
   background: rgba(252, 76, 2, 0.08);
-  transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
 .activity-strava-link i {

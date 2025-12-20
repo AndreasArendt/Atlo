@@ -63,10 +63,10 @@
     <section class="panel map-panel">
 
       <div class="map-config">
-        <div class="map-filter-card">
-          <div class="map-filter-controls" aria-label="Map filter selection">
-            <span class="map-filter-label">Activities</span>
-              <div id="map-filter-buttons" class="map-filter-buttons" role="group">
+        <div class="filter-card">
+          <div class="filter-controls" aria-label="Map filter selection">
+            <span class="filter-label">Activities</span>
+            <div id="activity-filter-buttons" class="filter-buttons" role="group">
               <button type="button" data-map-style="bright">All</button>
             </div>
           </div>
@@ -80,6 +80,7 @@
               <button type="button" data-map-style="outdoor">Outdoor</button>
               <button type="button" data-map-style="hybrid">Hybrid</button>
               <button type="button" data-map-style="topo">Topo</button>
+              <button type="button" data-map-style="winter">Winter</button>
             </div>
           </div>
         </div>
@@ -91,19 +92,28 @@
       </div>
     </section>
 
-    <section class="panel activities">
-      <div class="activities-header">
-        <h2>Activities</h2>
+    <section class="panel activities">      
+      <div class="filter-card">
+        <div class="filter-controls" aria-label="Activity filter selection">
+          <span class="filter-label">Activities</span>
+          <div id="activitiy-summary-button" class="filter-buttons" role="group">
+            <button type="button" activity-summary-style="all">All</button>
+            <button type="button" activity-summary-style="summary">Summary</button>
+          </div>
+        </div>
       </div>
+
+      <div class="activity-list">
       <ul id="list"></ul>
-      <div class="pagination-controls" id="activity-pagination" hidden>
-        <button type="button" id="prev-page" aria-label="Previous page">
-          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
-        </button>
-        <span id="page-indicator">Page 1 of 1</span>
-        <button type="button" id="next-page" aria-label="Next page">
-          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
-        </button>
+        <div class="pagination-controls" id="activity-pagination" hidden>
+          <button type="button" id="prev-page" aria-label="Previous page">
+            <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+          </button>
+          <span id="page-indicator">Page 1 of 1</span>
+          <button type="button" id="next-page" aria-label="Next page">
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
     </section>
   </div>
