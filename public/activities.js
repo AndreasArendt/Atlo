@@ -191,7 +191,12 @@ export function updateActivityDisplay({ skipMapUpdate = false } = {}) {
         },
         { distance: 0, movingTime: 0, elevationGain: 0 }
       );
-      renderSummary(totals, state.displayActivities.length, els.list);
+      renderSummary(
+        totals,
+        state.displayActivities.length,
+        els.list,
+        state.displayActivities
+      );
       return;
     }
 

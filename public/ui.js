@@ -1,5 +1,9 @@
 const spinnerEl = document.getElementById("status-spinner");
 const messageEl = document.getElementById("status-message");
+const summaryChartInstances = {};
+const getCssVar = (name, fallback) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
+  fallback;
 
 function hideAllStatus() {
   if (spinnerEl) spinnerEl.hidden = true;
@@ -65,7 +69,152 @@ const formatDuration = (seconds = 0) => {
   return parts.join(" ");
 };
 
-export function renderSummary(totals, count, listEl) {
+const buildCumulativeSeries = (activities = [], { valueForActivity, convertValue = (v) => v }) => {
+  const byDay = activities.reduce((acc, activity) => {
+    const value = Number(valueForActivity(activity)) || 0;
+    const date = activity?.date ? new Date(activity.date) : null;
+    if (!value || !date || Number.isNaN(date.getTime())) return acc;
+    const isoDay = date.toISOString().split("T")[0];
+    acc.set(isoDay, (acc.get(isoDay) || 0) + value);
+    return acc;
+  }, new Map());
+
+  const entries = Array.from(byDay.entries()).sort(([a], [b]) =>
+    a.localeCompare(b)
+  );
+
+  let running = 0;
+  return entries.map(([isoDay, value]) => {
+    running += value;
+    const label = new Date(isoDay).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+    });
+    return { label, value: convertValue(running) };
+  });
+};
+
+const renderCumulativeChart = (activities, containerEl, options) => {
+  if (!containerEl) return;
+
+  const canvas = containerEl.querySelector("canvas");
+  if (!canvas) return;
+
+  if (!window?.Chart) {
+    containerEl.innerHTML = `<p class="muted">Timeline unavailable (Chart.js not loaded).</p>`;
+    return;
+  }
+
+  const {
+    key = options?.title || "chart",
+    title = "",
+    unitLabel = "",
+    lineColor = "#2d3748",
+    valueFormatter = (v) => `${v}`,
+    valueForActivity,
+    convertValue = (v) => v,
+  } = options || {};
+
+  const series = buildCumulativeSeries(activities, { valueForActivity, convertValue });
+  if (!series.length) {
+    containerEl.innerHTML = `<p class="muted">No data available for this range.</p>`;
+    return;
+  }
+
+  const labels = series.map((point) => point.label);
+  const data = series.map((point) => Number(point.value) || 0);
+
+  if (summaryChartInstances[key]) {
+    summaryChartInstances[key].destroy();
+  }
+
+  const accent = getCssVar("--accent", "#113c4c");
+  const text = getCssVar("--text", "#0f172a");
+  const border = getCssVar("--border", "rgba(15,23,42,0.12)");
+  const muted = getCssVar("--muted", "#64748b");
+
+  const ctx = canvas.getContext("2d");
+  const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 240);
+  gradient.addColorStop(0, `${lineColor || accent}22`);
+  gradient.addColorStop(1, `${lineColor || accent}00`);
+
+  summaryChartInstances[key] = new window.Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: title,
+          data,
+          tension: 0.35,
+          fill: false,
+          borderColor: lineColor,
+          backgroundColor: gradient,
+          pointBackgroundColor: lineColor,
+          pointBorderColor: lineColor,
+          pointBorderWidth: 0,
+          pointRadius: 0,
+          pointHoverRadius: 0,
+          pointHoverBorderWidth: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: Boolean(title),
+          text: title,
+          color: text,
+          font: { weight: 500, size: 14 },
+          align: "start",
+          padding: { bottom: 15 },
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => valueFormatter(ctx.parsed.y),
+          },
+          backgroundColor: "#fff",
+          titleColor: text,
+          bodyColor: text,
+          borderColor: border,
+          borderWidth: 1,
+          displayColors: false,
+        },
+      },
+      scales: {
+        x: {
+          title: { display: false, text: "", color: muted, font: { size: 11 } },
+          grid: {
+            color: border,
+            borderColor: border,
+          },
+          ticks: {
+            color: muted,
+            maxRotation: 0,
+            maxTicksLimit: 15,
+          },
+        },
+        y: {
+          title: { display: !!unitLabel, text: unitLabel, color: muted, font: { size: 11 } },
+          grid: {
+            color: border,
+            borderColor: border,
+          },
+          ticks: {
+            callback: (value) => valueFormatter(value),
+            color: muted,
+            maxTicksLimit: 6,
+          },
+        },
+      },
+    },
+  });
+};
+
+export function renderSummary(totals, count, listEl, activities = []) {
   if (!listEl) return;
   const { distance = 0, movingTime = 0, elevationGain = 0 } = totals || {};
   const activityCount = Number(count) || 0;
@@ -94,8 +243,55 @@ export function renderSummary(totals, count, listEl) {
           <span class="stat-value">${formatElevation(elevationGain)}</span>
         </div>
       </div>
+      <div class="summary-charts">
+        <div class="summary-chart" data-chart-type="distance">
+          <canvas aria-label="Cumulative distance chart"></canvas>
+        </div>
+        <div class="summary-chart" data-chart-type="elevation">
+          <canvas aria-label="Cumulative elevation chart"></canvas>
+        </div>
+        <div class="summary-chart" data-chart-type="time">
+          <canvas aria-label="Cumulative time chart"></canvas>
+        </div>
+      </div>
     </li>
   `;
+
+  const chartsContainer = listEl.querySelector(".summary-charts");
+  const distanceEl = chartsContainer?.querySelector('[data-chart-type="distance"]');
+  const elevationEl = chartsContainer?.querySelector('[data-chart-type="elevation"]');
+  const timeEl = chartsContainer?.querySelector('[data-chart-type="time"]');
+  const lineColor = getCssVar("--text", "#2d3748");
+
+  renderCumulativeChart(activities, distanceEl, {
+    key: "distance",
+    title: "Total Distance",
+    unitLabel: "",
+    lineColor,
+    valueForActivity: (a) => a?.distance,
+    convertValue: (v) => +(v / 1000).toFixed(2),
+    valueFormatter: (v) => `${Number(v).toFixed(1)} km`,
+  });
+
+  renderCumulativeChart(activities, elevationEl, {
+    key: "elevation",
+    title: "Total Elevation",
+    unitLabel: "",
+    lineColor,
+    valueForActivity: (a) => a?.elevationGain,
+    convertValue: (v) => Math.round(v),
+    valueFormatter: (v) => `${Math.round(v)} m`,
+  });
+
+  renderCumulativeChart(activities, timeEl, {
+    key: "time",
+    title: "Total Time",
+    unitLabel: "",
+    lineColor,
+    valueForActivity: (a) => a?.movingTime,
+    convertValue: (v) => +(v / 3600).toFixed(2),
+    valueFormatter: (v) => `${Number(v).toFixed(1)} h`,
+  });
 }
 
 export function renderList(activities, listEl) {
