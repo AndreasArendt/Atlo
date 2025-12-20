@@ -536,20 +536,109 @@ function changeMapStyle(styleId) {
   }
 }
 
-async function init() {
+function isLocalHost() {
   const hostname = window?.location?.hostname || "";
-  const isLocal =
+  return (
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
-    hostname.endsWith(".local");
+    hostname.endsWith(".local")
+  );
+}
 
-  if (isLocal) {
-    try {
-      // Clear persisted state while working locally so changes are easy to test.
-      window.localStorage.clear();
-    } catch {
-      window.localStorage.removeItem(COOKIE_CONSENT_KEY);
+function clearLocalStateForDev() {
+  try {
+    window.localStorage.clear();
+  } catch {
+    window.localStorage.removeItem(COOKIE_CONSENT_KEY);
+  }
+}
+
+function bindRangeButtons() {
+  els.quickButtons.forEach((btn) => {
+    btn.addEventListener("click", () => applyRange(btn.dataset.range));
+  });
+}
+
+function bindMapStyleButtons() {
+  els.mapStyleButtons.forEach((btn) => {
+    btn.addEventListener("click", () => changeMapStyle(btn.dataset.mapStyle));
+  });
+}
+
+function bindPaginationControls() {
+  if (!els.prevPage || !els.nextPage) return;
+  els.prevPage.addEventListener("click", () => {
+    if (currentPage === 1) return;
+    currentPage -= 1;
+    renderCurrentPage();
+  });
+
+  els.nextPage.addEventListener("click", () => {
+    const totalPages = getTotalPages();
+    if (currentPage >= totalPages) return;
+    currentPage += 1;
+    renderCurrentPage();
+  });
+}
+
+function bindListToggle() {
+  if (!els.list) return;
+  els.list.addEventListener("click", (event) => {
+    const toggle = event.target.closest("[data-activity-toggle]");
+    if (!toggle) return;
+    const activityId = toggle.getAttribute("data-activity-toggle");
+    if (!activityId) return;
+    const key = String(activityId);
+    if (expandedActivities.has(key)) {
+      expandedActivities.delete(key);
+    } else {
+      expandedActivities.add(key);
     }
+    renderCurrentPage();
+  });
+}
+
+function bindConnectButton() {
+  if (!els.connect) return;
+  renderConnectButton(false);
+  els.connect.addEventListener("click", (event) => {
+    if (isAuthenticated) {
+      handleLogout(event);
+    } else {
+      startAuthFlow(event);
+    }
+  });
+}
+
+async function establishSession() {
+  try {
+    await ensureSessionCookie();
+    return true;
+  } catch (err) {
+    console.error("Failed to establish session:", err);
+    showStatusMessage(
+      "Unable to initialize your session. Reload the page and try again.",
+      "var(--error)"
+    );
+    return false;
+  }
+}
+
+async function initMapInstance() {
+  try {
+    mapInstance = await initMap(els.map);
+    return true;
+  } catch (err) {
+    console.error(err);
+    showStatusMessage(err.message || "Failed to load the map.", "var(--error)");
+    return false;
+  }
+}
+
+async function init() {
+  if (isLocalHost()) {
+    // Clear persisted state while working locally so changes are easy to test.
+    clearLocalStateForDev();
   }
 
   const consentGiven = await initCookieBanner();
@@ -559,80 +648,27 @@ async function init() {
   }
 
   // add connect button once consent given
-  document.querySelector('.btn-strava').classList.add('cookie-consent-given');  
+  els.connect?.classList.add("cookie-consent-given");
 
-  try {
-    await ensureSessionCookie();
-  } catch (err) {
-    console.error("Failed to establish session:", err);
-    showStatusMessage(
-      "Unable to initialize your session. Reload the page and try again.",
-      "var(--error)"
-    );
+  bindRangeButtons();
+  bindMapStyleButtons();
+  bindPaginationControls();
+  bindListToggle();
+  bindConnectButton();
+  setActiveMapStyle(activeMapStyle);
+
+  const hasSession = await establishSession();
+  if (!hasSession) {
     return;
   }
 
-  try {
-    mapInstance = await initMap(els.map);
-  } catch (err) {
-    console.error(err);
-    showStatusMessage(err.message || "Failed to load the map.", "var(--error)");
+  const mapReady = await initMapInstance();
+  if (!mapReady) {
+    return;
   }
 
   applyRange("year");
   initRangePicker();
-
-  els.quickButtons.forEach((btn) => {
-    btn.addEventListener("click", () => applyRange(btn.dataset.range));
-  });
-
-  els.mapStyleButtons.forEach((btn) => {
-    btn.addEventListener("click", () => changeMapStyle(btn.dataset.mapStyle));
-  });
-
-  setActiveMapStyle(activeMapStyle);
-
-  if (els.prevPage && els.nextPage) {
-    els.prevPage.addEventListener("click", () => {
-      if (currentPage === 1) return;
-      currentPage -= 1;
-      renderCurrentPage();
-    });
-
-    els.nextPage.addEventListener("click", () => {
-      const totalPages = getTotalPages();
-      if (currentPage >= totalPages) return;
-      currentPage += 1;
-      renderCurrentPage();
-    });
-  }
-
-  if (els.list) {
-    els.list.addEventListener("click", (event) => {
-      const toggle = event.target.closest("[data-activity-toggle]");
-      if (!toggle) return;
-      const activityId = toggle.getAttribute("data-activity-toggle");
-      if (!activityId) return;
-      const key = String(activityId);
-      if (expandedActivities.has(key)) {
-        expandedActivities.delete(key);
-      } else {
-        expandedActivities.add(key);
-      }
-      renderCurrentPage();
-    });
-  }
-
-  if (els.connect) {
-    renderConnectButton(false);
-    els.connect.addEventListener("click", (event) => {
-      if (isAuthenticated) {
-        handleLogout(event);
-      } else {
-        startAuthFlow(event);
-      }
-    });
-  }
 
   checkAuthStatus().then((authed) => {
     updateAuthUI(authed);
