@@ -389,11 +389,10 @@ async function loadActivities() {
   }
 }
 
-function updateActivityDisplay() {
+function updateActivityDisplay({ skipMapUpdate = false } = {}) {
   showStatusSpinner();
 
-  try
-  {
+  try {
     const isSummary = activeSummaryStyle === "summary";
     if (els.pagination) {
       els.pagination.hidden = isSummary;
@@ -404,7 +403,7 @@ function updateActivityDisplay() {
       displayActivities = [];
       els.count.textContent = "0";
       expandedActivities.clear();
-      if (mapInstance) {
+      if (!skipMapUpdate && mapInstance) {
         renderPolylines(mapInstance, []);
       }
       renderList([], els.list);
@@ -418,8 +417,8 @@ function updateActivityDisplay() {
 
     els.count.textContent = displayActivities.length.toString();
     expandedActivities.clear();
-    
-    if (mapInstance) {
+
+    if (!skipMapUpdate && mapInstance) {
       renderPolylines(mapInstance, displayActivities);
     }
 
@@ -436,11 +435,10 @@ function updateActivityDisplay() {
       renderSummary(totals, displayActivities.length, els.list);
       return;
     }
-  
+
     currentPage = 1;
     renderCurrentPage();
-  }
-  finally {
+  } finally {
     hideStatusSpinner();
   }
 }
@@ -587,7 +585,7 @@ function changeSummaryStyle(styleId) {
 
   activeSummaryStyle = next;
   setActiveActivitySummaryButton(next);
-  updateActivityDisplay();
+  updateActivityDisplay({ skipMapUpdate: true });
 }
 
 function isLocalHost() {
