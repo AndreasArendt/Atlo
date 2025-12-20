@@ -24,7 +24,7 @@ const els = {
   endDate: document.getElementById("end-date"),
   rangeLabel: document.getElementById("range-label"),
   quickButtons: document.querySelectorAll("[data-range]"),
-  mapStyleButtons: document.querySelectorAll("[data-map-style]"),
+  mapStyleButtons: document.querySelectorAll(".map-style-buttons [data-map-style]"),
   summaryStyleButtons: document.querySelectorAll("[activity-summary-style]"),
   pagination: document.getElementById("activity-pagination"),
   prevPage: document.getElementById("prev-page"),
