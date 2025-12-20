@@ -1,6 +1,7 @@
 import { api } from "./api.js";
 import {
   renderList,
+  renderSummary,
   showStatusSpinner,
   hideStatusSpinner,
   showStatusMessage,
@@ -24,6 +25,7 @@ const els = {
   rangeLabel: document.getElementById("range-label"),
   quickButtons: document.querySelectorAll("[data-range]"),
   mapStyleButtons: document.querySelectorAll("[data-map-style]"),
+  summaryStyleButtons: document.querySelectorAll("[activity-summary-style]"),
   pagination: document.getElementById("activity-pagination"),
   prevPage: document.getElementById("prev-page"),
   nextPage: document.getElementById("next-page"),
@@ -31,12 +33,15 @@ const els = {
   rangePickerInput: document.getElementById("date-range-picker"),
   cookieBanner: document.getElementById("cookie-banner"),
   cookieAccept: document.getElementById("cookie-accept"),
-  activityFilterButtons: document.getElementById('map-filter-buttons'),
+  activityFilterButtons: document.getElementById('activity-filter-buttons'),
+  activitySummaryButtons: document.getElementById('activitiy-summary-button'),
 };
 
 let allActivities = [];
 let displayActivities = [];
 let currentActivityFilter = 'All';
+
+let activeSummaryStyle = 'all';
 
 let mapInstance;
 let activeMapStyle = DEFAULT_MAP_STYLE_ID;
@@ -389,6 +394,12 @@ function updateActivityDisplay() {
 
   try
   {
+    const isSummary = activeSummaryStyle === "summary";
+    if (els.pagination) {
+      els.pagination.hidden = isSummary;
+      els.pagination.classList.toggle("display-summary", isSummary);
+    }
+
     if (!allActivities.length) {
       displayActivities = [];
       els.count.textContent = "0";
@@ -396,6 +407,7 @@ function updateActivityDisplay() {
       if (mapInstance) {
         renderPolylines(mapInstance, []);
       }
+      renderList([], els.list);
       currentPage = 1;
       renderCurrentPage();
       updatePaginationControls();
@@ -403,12 +415,26 @@ function updateActivityDisplay() {
     }
 
     applyActivityFilter(currentActivityFilter);
-  
+
     els.count.textContent = displayActivities.length.toString();
     expandedActivities.clear();
     
     if (mapInstance) {
       renderPolylines(mapInstance, displayActivities);
+    }
+
+    if (isSummary) {
+      const totals = displayActivities.reduce(
+        (acc, item) => {
+          acc.distance += Number(item.distance) || 0;
+          acc.movingTime += Number(item.movingTime) || 0;
+          acc.elevationGain += Number(item.elevationGain) || 0;
+          return acc;
+        },
+        { distance: 0, movingTime: 0, elevationGain: 0 }
+      );
+      renderSummary(totals, displayActivities.length, els.list);
+      return;
     }
   
     currentPage = 1;
@@ -444,6 +470,24 @@ function setActiveActivityFilterButton(filterLabel = "All") {
     (btn) => {
       const label = (btn.dataset.filter || btn.textContent || "").trim();
       btn.classList.toggle("active", label === filterLabel);
+    }
+  );
+}
+
+function setActiveActivitySummaryButton(filterLabel = "all") {
+  if (!els.activitySummaryButtons) return;
+  const normalized = (filterLabel || "").toString().toLowerCase();
+  Array.from(els.activitySummaryButtons.querySelectorAll("button")).forEach(
+    (btn) => {
+      const label =
+        btn.getAttribute("activity-summary-style") ||
+        btn.dataset.filter ||
+        btn.textContent ||
+        "";
+      btn.classList.toggle(
+        "active",
+        label.toString().toLowerCase() === normalized
+      );
     }
   );
 }
@@ -537,6 +581,15 @@ function changeMapStyle(styleId) {
   }
 }
 
+function changeSummaryStyle(styleId) {
+  const next = (styleId || "").toString().toLowerCase();
+  if (!next || next === activeSummaryStyle) return;
+
+  activeSummaryStyle = next;
+  setActiveActivitySummaryButton(next);
+  updateActivityDisplay();
+}
+
 function isLocalHost() {
   const hostname = window?.location?.hostname || "";
   return (
@@ -563,6 +616,14 @@ function bindRangeButtons() {
 function bindMapStyleButtons() {
   els.mapStyleButtons.forEach((btn) => {
     btn.addEventListener("click", () => changeMapStyle(btn.dataset.mapStyle));
+  });
+}
+
+function bindSummaryStyleButtons() {
+  els.summaryStyleButtons.forEach((btn) => {
+    btn.addEventListener("click", () =>
+      changeSummaryStyle(btn.getAttribute("activity-summary-style"))
+    );
   });
 }
 
@@ -651,7 +712,7 @@ async function initMapInstance() {
 async function init() {
   if (isLocalHost()) {
     // Clear persisted state while working locally so changes are easy to test.
-    clearLocalStateForDev();
+    //clearLocalStateForDev();
   }
 
   const consentGiven = await initCookieBanner();
@@ -665,10 +726,12 @@ async function init() {
 
   bindRangeButtons();
   bindMapStyleButtons();
+  bindSummaryStyleButtons();
   bindPaginationControls();
   bindListToggle();
   bindConnectButton();
   setActiveMapStyle(activeMapStyle);
+  setActiveActivitySummaryButton(activeSummaryStyle);
 
   const hasSession = await establishSession();
   if (!hasSession) {

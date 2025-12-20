@@ -65,6 +65,39 @@ const formatDuration = (seconds = 0) => {
   return parts.join(" ");
 };
 
+export function renderSummary(totals, count, listEl) {
+  if (!listEl) return;
+  const { distance = 0, movingTime = 0, elevationGain = 0 } = totals || {};
+  const activityCount = Number(count) || 0;
+
+  listEl.innerHTML = `
+    <li class="activity-card summary-card">
+      <div class="activity-header">
+        <div class="activity-title">
+          <p class="activity-name">Summary</p>
+          <p class="activity-meta">
+            <span class="activity-type">${activityCount} activit${activityCount === 1 ? "y" : "ies"}</span>
+          </p>
+        </div>
+      </div>
+      <div class="activity-stats">
+        <div class="activity-stat">
+          <span class="stat-label">Total distance</span>
+          <span class="stat-value">${formatDistance(distance)}</span>
+        </div>
+        <div class="activity-stat">
+          <span class="stat-label">Total time</span>
+          <span class="stat-value">${formatDuration(movingTime)}</span>
+        </div>
+        <div class="activity-stat">
+          <span class="stat-label">Total elev. gain</span>
+          <span class="stat-value">${formatElevation(elevationGain)}</span>
+        </div>
+      </div>
+    </li>
+  `;
+}
+
 export function renderList(activities, listEl) {
   if (!activities.length) {
     listEl.innerHTML = `<li class="muted">No activities matched this range.</li>`;
