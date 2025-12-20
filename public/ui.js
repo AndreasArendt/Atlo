@@ -83,15 +83,26 @@ export function renderList(activities, listEl) {
               <span class="activity-date">${humanDate(a.date)}</span>
             </p>
           </div>
-          <a
-            class="activity-strava-link"
-            href="https://www.strava.com/activities/${a.id}"
-            target="_blank"
-            rel="noreferrer"
-          >
-            <i class="fa-brands fa-strava" aria-hidden="true"></i>
-            <span>View on Strava</span>
-          </a>
+          <div class="activity-actions">
+            <button
+              type="button"
+              class="activity-map-link"
+              data-activity-focus="${a.id}"
+              aria-label="Zoom to ${escapeHtml(a.name || "activity")}"
+            >
+              <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+              <span>View on Map</span>
+            </button>
+            <a
+              class="activity-strava-link"
+              href="https://www.strava.com/activities/${a.id}"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <i class="fa-brands fa-strava" aria-hidden="true"></i>            
+              <span>View on Strava</span>
+            </a>          
+          </div>
         </div>
         <div class="activity-stats">
           <div class="activity-stat">

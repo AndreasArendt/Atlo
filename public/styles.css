@@ -464,6 +464,15 @@ li.muted {
   flex-wrap: wrap;
 }
 
+.activity-actions {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
 .activity-title {
   display: flex;
   flex-direction: column;
@@ -505,6 +514,7 @@ li.muted {
   color: var(--muted);
 }
 
+.activity-map-link,
 .activity-strava-link {
   display: inline-flex;
   align-items: center;
@@ -514,10 +524,33 @@ li.muted {
   font-weight: 600;
   padding: 8px 14px;
   border-radius: 999px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.activity-map-link {
+  border: 1px solid rgba(17, 60, 76, 0.25);
+  background: rgba(17, 60, 76, 0.08);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.activity-map-link i {
+  color: var(--accent);
+}
+
+.activity-map-link:hover {
+  box-shadow: 0 10px 25px rgba(17, 60, 76, 0.15);
+  transform: translateY(-1px);
+}
+
+.activity-map-link:active {
+  transform: translateY(0);
+}
+
+.activity-strava-link {
   border: 1px solid rgba(252, 76, 2, 0.3);
   color: var(--text);
   background: rgba(252, 76, 2, 0.08);
-  transition: transform 120ms ease, box-shadow 120ms ease;
 }
 
 .activity-strava-link i {

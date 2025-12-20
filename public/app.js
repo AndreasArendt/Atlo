@@ -10,6 +10,7 @@ import {
   renderPolylines,
   applyMapStyle,
   DEFAULT_MAP_STYLE_ID,
+  focusActivity,
 } from "./map.js";
 
 const els = {
@@ -584,6 +585,18 @@ function bindPaginationControls() {
 function bindListToggle() {
   if (!els.list) return;
   els.list.addEventListener("click", (event) => {
+    const focusButton = event.target.closest("[data-activity-focus]");
+    if (focusButton) {
+      const activityId = focusButton.getAttribute("data-activity-focus");
+      const activity = displayActivities.find(
+        (a) => String(a.id) === String(activityId)
+      );
+      if (activity && mapInstance) {
+        focusActivity(mapInstance, activity);
+      }
+      return;
+    }
+
     const toggle = event.target.closest("[data-activity-toggle]");
     if (!toggle) return;
     const activityId = toggle.getAttribute("data-activity-toggle");

@@ -409,3 +409,22 @@ function bindLayerInteractions(map) {
 
   interactionsBound = true;
 }
+
+export function focusActivity(map, activity) {
+  if (!map || !activity?.polyline) return;
+
+  const coords = decodePolyline(activity.polyline)
+    .map(([lat, lng]) => [lng, lat])
+    .filter(
+      ([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat)
+    );
+
+  if (!coords.length) return;
+
+  const bounds = coords.reduce(
+    (acc, coord) => acc.extend(coord),
+    new maptilersdk.LngLatBounds(coords[0], coords[0])
+  );
+
+  map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 650 });
+}
