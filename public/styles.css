@@ -579,18 +579,17 @@ li.muted {
   gap: 8px;
 }
 
-.summary-charts {
-  display: flex;
-  flex-direction: column;
+.activity-stats.summary-stats {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
 }
 
 .summary-chart {
-  margin-top: 4px;
+  margin-top: 12px;
   padding: 12px;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 14px;
-  background: linear-gradient(180deg, rgba(17, 60, 76, 0.04), rgba(56, 172, 189, 0.03));
+  background: transparent;
   height: clamp(220px, 32vh, 320px);
 }
 

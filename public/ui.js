@@ -1,3 +1,6 @@
+import { activityItemTemplate } from "./templates/activityItemTemplate.js";
+import { summaryTemplate } from "./templates/summaryTemplate.js";
+
 const spinnerEl = document.getElementById("status-spinner");
 const messageEl = document.getElementById("status-message");
 const summaryChartInstances = {};
@@ -194,7 +197,7 @@ const renderCumulativeChart = (activities, containerEl, options) => {
           ticks: {
             color: muted,
             maxRotation: 0,
-            maxTicksLimit: 15,
+            maxTicksLimit: 4,
           },
         },
         y: {
@@ -219,54 +222,26 @@ export function renderSummary(totals, count, listEl, activities = []) {
   const { distance = 0, movingTime = 0, elevationGain = 0 } = totals || {};
   const activityCount = Number(count) || 0;
 
-  listEl.innerHTML = `
-    <li class="activity-card summary-card">
-      <div class="activity-header">
-        <div class="activity-title">
-          <p class="activity-name">Summary</p>
-          <p class="activity-meta">
-            <span class="activity-type">${activityCount} activit${activityCount === 1 ? "y" : "ies"}</span>
-          </p>
-        </div>
-      </div>
-      <div class="activity-stats">
-        <div class="activity-stat">
-          <span class="stat-label">Total distance</span>
-          <span class="stat-value">${formatDistance(distance)}</span>
-        </div>
-        <div class="activity-stat">
-          <span class="stat-label">Total time</span>
-          <span class="stat-value">${formatDuration(movingTime)}</span>
-        </div>
-        <div class="activity-stat">
-          <span class="stat-label">Total elev. gain</span>
-          <span class="stat-value">${formatElevation(elevationGain)}</span>
-        </div>
-      </div>
-      <div class="summary-charts">
-        <div class="summary-chart" data-chart-type="distance">
-          <canvas aria-label="Cumulative distance chart"></canvas>
-        </div>
-        <div class="summary-chart" data-chart-type="elevation">
-          <canvas aria-label="Cumulative elevation chart"></canvas>
-        </div>
-        <div class="summary-chart" data-chart-type="time">
-          <canvas aria-label="Cumulative time chart"></canvas>
-        </div>
-      </div>
-    </li>
-  `;
+  const activityCountLabel = `${activityCount} activit${activityCount === 1 ? "y" : "ies"}`;
+  listEl.innerHTML = summaryTemplate({
+    activityCountLabel,
+    totalDistance: formatDistance(distance),
+    totalTime: formatDuration(movingTime),
+    totalElevation: formatElevation(elevationGain),
+  });
 
-  const chartsContainer = listEl.querySelector(".summary-charts");
+  const chartsContainer = listEl.querySelector(".summary-stats");
   const distanceEl = chartsContainer?.querySelector('[data-chart-type="distance"]');
   const elevationEl = chartsContainer?.querySelector('[data-chart-type="elevation"]');
   const timeEl = chartsContainer?.querySelector('[data-chart-type="time"]');
 
+  const chartLineColor = getCssVar("--accent", "#1F3A5F");
+
   renderCumulativeChart(activities, distanceEl, {
     key: "distance",
-    title: "Distance",
+    title: "",
     unitLabel: "",
-    lineColor: "#113c4c",
+    lineColor: chartLineColor,
     valueForActivity: (a) => a?.distance,
     convertValue: (v) => +(v / 1000).toFixed(2),
     valueFormatter: (v) => `${Number(v).toFixed(1)} km`,
@@ -274,9 +249,9 @@ export function renderSummary(totals, count, listEl, activities = []) {
 
   renderCumulativeChart(activities, elevationEl, {
     key: "elevation",
-    title: "Elevation",
+    title: "",
     unitLabel: "",
-    lineColor: getCssVar("--accent", "#113c4c"),
+    lineColor: chartLineColor,
     valueForActivity: (a) => a?.elevationGain,
     convertValue: (v) => Math.round(v),
     valueFormatter: (v) => `${Math.round(v)} m`,
@@ -284,9 +259,9 @@ export function renderSummary(totals, count, listEl, activities = []) {
 
   renderCumulativeChart(activities, timeEl, {
     key: "time",
-    title: " Time",
+    title: "",
     unitLabel: "",
-    lineColor: getCssVar("--muted", "#113c4c"),
+    lineColor: chartLineColor,
     valueForActivity: (a) => a?.movingTime,
     convertValue: (v) => +(v / 3600).toFixed(2),
     valueFormatter: (v) => `${Number(v).toFixed(1)} h`,
@@ -300,53 +275,16 @@ export function renderList(activities, listEl) {
   }
 
   listEl.innerHTML = activities
-    .map((a) => `
-      <li class="activity-card">
-        <div class="activity-header">
-          <div class="activity-title">
-            <p class="activity-name">${escapeHtml(a.name || "Untitled activity")}</p>
-            <p class="activity-meta">
-              <span class="activity-type">${escapeHtml(a.type || "-")}</span>
-              <span aria-hidden="true">•</span>
-              <span class="activity-date">${humanDate(a.date)}</span>
-            </p>
-          </div>
-          <div class="activity-actions">
-            <button
-              type="button"
-              class="activity-map-link"
-              data-activity-focus="${a.id}"
-              aria-label="Zoom to ${escapeHtml(a.name || "activity")}"
-            >
-              <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
-              <span>View on Map</span>
-            </button>
-            <a
-              class="activity-strava-link"
-              href="https://www.strava.com/activities/${a.id}"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <i class="fa-brands fa-strava" aria-hidden="true"></i>            
-              <span>View on Strava</span>
-            </a>          
-          </div>
-        </div>
-        <div class="activity-stats">
-          <div class="activity-stat">
-            <span class="stat-label">Distance</span>
-            <span class="stat-value">${formatDistance(a.distance)}</span>
-          </div>
-          <div class="activity-stat">
-            <span class="stat-label">Moving time</span>
-            <span class="stat-value">${formatDuration(a.movingTime)}</span>
-          </div>
-          <div class="activity-stat">
-            <span class="stat-label">Elev. gain</span>
-            <span class="stat-value">${formatElevation(a.elevationGain)}</span>
-          </div>
-        </div>
-      </li>
-    `)
+    .map((a) =>
+      activityItemTemplate({
+        id: escapeHtml(a.id?.toString() || ""),
+        name: escapeHtml(a.name || "Untitled activity"),
+        type: escapeHtml(a.type || "-"),
+        date: humanDate(a.date),
+        distance: formatDistance(a.distance),
+        movingTime: formatDuration(a.movingTime),
+        elevationGain: formatElevation(a.elevationGain),
+      })
+    )
     .join("");
 }
