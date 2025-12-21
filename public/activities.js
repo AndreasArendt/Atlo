@@ -252,9 +252,15 @@ export async function loadActivities() {
   showStatusSpinner();
 
   try {
+    const before = new Date(els.endDate.value);
+    before.setDate(before.getDate() + 1); // include end date activities by offsetting the upper bound
+    const beforeParam = Number.isNaN(before.getTime())
+      ? els.endDate.value
+      : before.toISOString();
+
     const params = new URLSearchParams({
       after: els.startDate.value,
-      before: els.endDate.value,
+      before: beforeParam,
     });
 
     state.allActivities = await api(`/api/activities?${params.toString()}`);
