@@ -1,8 +1,4 @@
-import {
-  wgs84_to_ecef,
-  ecefToWgs84,
-  catmullRomSpline,
-} from "./geo.js";
+import { wgs84_to_ecef, ecefToWgs84, catmullRomSpline } from "./geo.js";
 
 const maptilersdk = window.maptilersdk;
 if (!maptilersdk) {
@@ -17,11 +13,26 @@ const DEFAULT_VIEW = { center: [0, 0], zoom: 1.5 };
 const STRAVA_ACTIVITY_URL = "https://www.strava.com/activities/";
 
 const MAP_STYLE_LOOKUP = {
-  bright: maptilersdk.MapStyle.BRIGHT,
-  outdoor: maptilersdk.MapStyle.OUTDOOR,
-  hybrid: maptilersdk.MapStyle.HYBRID,
-  topo: maptilersdk.MapStyle.TOPO,
-  winter: maptilersdk.MapStyle.WINTER,
+  bright: {
+    style: maptilersdk.MapStyle.BRIGHT,
+    color: "#2F7ED8", // muted medium blue
+  },
+  outdoor: {
+    style: maptilersdk.MapStyle.OUTDOOR,
+    color: "#2C3E50",
+  },
+  hybrid: {
+    style: maptilersdk.MapStyle.HYBRID,
+    color: "#B8B46B",
+  },
+  topo: {
+    style: maptilersdk.MapStyle.TOPO,
+    color: "#8E2F6B", // deep muted magenta
+  },
+  winter: {
+    style: maptilersdk.MapStyle.WINTER,
+    color: "#1F3A5F", // dark cold navy
+  },
 };
 
 export const DEFAULT_MAP_STYLE_ID = "bright";
@@ -40,7 +51,8 @@ let fullscreenControl;
 let fullscreenControlMap;
 
 function resolveStyle(styleId = DEFAULT_MAP_STYLE_ID) {
-  return MAP_STYLE_LOOKUP[styleId] || maptilersdk.MapStyle.STREETS;
+  const entry = MAP_STYLE_LOOKUP[styleId];
+  return (entry && entry.style) || maptilersdk.MapStyle.STREETS;
 }
 
 /**
@@ -91,7 +103,7 @@ async function fetchMaptilerKey() {
   if (!keyPromise) {
     keyPromise = fetch("/api/maptiler-key", {
       method: "GET",
-      credentials: "include"
+      credentials: "include",
     })
       .then((res) => {
         if (!res.ok) throw new Error("Unable to fetch the MapTiler API key.");
@@ -149,13 +161,21 @@ function createFeatureCollection(activities) {
 
       const decoded = latLngPoints.map(([lat, lng]) => [lng, lat]); // Convert to [lng, lat]
 
-      const ecefPoints = wgs84_to_ecef(latLngPoints.map(([lat, lon]) => [lat, lon, 0]));
+      const ecefPoints = wgs84_to_ecef(
+        latLngPoints.map(([lat, lon]) => [lat, lon, 0])
+      );
       if (!ecefPoints.length) return null;
 
       const ecefVectors = ecefPoints.map(([x, y, z = 0]) => ({ x, y, z }));
       const smoothedEcefObjects =
-        ecefVectors.length >= 4 ? catmullRomSpline(ecefVectors, 10, 0.5) : ecefVectors;
-      const smoothedEcef = smoothedEcefObjects.map(({ x, y, z = 0 }) => [x, y, z]);
+        ecefVectors.length >= 4
+          ? catmullRomSpline(ecefVectors, 10, 0.5)
+          : ecefVectors;
+      const smoothedEcef = smoothedEcefObjects.map(({ x, y, z = 0 }) => [
+        x,
+        y,
+        z,
+      ]);
 
       const interpolatedWgs = ecefToWgs84(smoothedEcef).map((pt) => [
         pt.lon_deg,
@@ -216,14 +236,14 @@ function ensureLayer(map) {
       type: "line",
       source: ROUTE_SOURCE_ID,
       paint: {
-        "line-color": "#38acbd",
+        "line-color": MAP_STYLE_LOOKUP[currentStyleId].color,
         "line-width": [
           "case",
           ["boolean", ["feature-state", "hover"], false],
           5,
           3,
         ],
-        "line-opacity": 0.85,
+        "line-opacity": 0.9,
       },
     });
 
@@ -358,11 +378,11 @@ export function applyMapStyle(map, styleId, activities = []) {
   const reapply = () => {
     ensureNavigationControl(map);
     const activitiesToRender =
-      (Array.isArray(activities) && activities.length
+      Array.isArray(activities) && activities.length
         ? activities
         : Array.isArray(lastActivities)
         ? lastActivities
-        : []);
+        : [];
 
     if (activitiesToRender.length) {
       renderPolylines(map, activitiesToRender);
@@ -390,7 +410,7 @@ function ensureNavigationControl(map) {
   if (!navigationControl) {
     navigationControl = new maptilersdk.NavigationControl({
       showZoom: false,
-      showCompass: false
+      showCompass: false,
     });
   }
 
@@ -466,9 +486,7 @@ export function focusActivity(map, activity) {
 
   const coords = decodePolyline(activity.polyline)
     .map(([lat, lng]) => [lng, lat])
-    .filter(
-      ([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat)
-    );
+    .filter(([lng, lat]) => Number.isFinite(lng) && Number.isFinite(lat));
 
   if (!coords.length) return;
 
