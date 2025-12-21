@@ -15,19 +15,19 @@ const STRAVA_ACTIVITY_URL = "https://www.strava.com/activities/";
 const MAP_STYLE_LOOKUP = {
   bright: {
     style: maptilersdk.MapStyle.BRIGHT,
-    color: "#2F7ED8", // muted medium blue
+    color: "#1F3A5F", // dark cold navy
   },
   outdoor: {
     style: maptilersdk.MapStyle.OUTDOOR,
-    color: "#2C3E50",
+    color: "#1F3A5F", // dark cold navy
   },
   hybrid: {
     style: maptilersdk.MapStyle.HYBRID,
-    color: "#B8B46B",
+    color: "#2F7ED8", // muted medium blue
   },
   topo: {
     style: maptilersdk.MapStyle.TOPO,
-    color: "#8E2F6B", // deep muted magenta
+    color: "#1F3A5F", // dark cold navy
   },
   winter: {
     style: maptilersdk.MapStyle.WINTER,
