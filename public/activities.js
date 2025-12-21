@@ -91,7 +91,7 @@ function setActiveActivityFilterButton(filterLabel = "All") {
   );
 }
 
-export function setActiveActivitySummaryButton(filterLabel = "summary") {
+export function setActiveActivitySummaryButton(filterLabel = "list") {
   if (!els.activitySummaryButtons) return;
   const normalized = (filterLabel || "").toString().toLowerCase();
   Array.from(els.activitySummaryButtons.querySelectorAll("button")).forEach(

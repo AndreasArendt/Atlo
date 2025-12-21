@@ -3,7 +3,7 @@ export const state = {
   displayActivities: [],
   displayGearIDs: [],
   currentActivityFilter: "All",
-  activeSummaryStyle: "all",
+  activeSummaryStyle: "list",
   mapInstance: null,
   activeMapStyle: "bright",
   authPollTimer: null,
