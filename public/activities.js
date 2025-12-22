@@ -404,7 +404,13 @@ export async function loadActivities() {
     return;
   }
 
-  els.rangeLabel.textContent = formatRangeLabel(start, end);
+  const isAllRange =
+    Array.from(els.quickButtons || []).some(
+      (btn) => btn.classList.contains("active") && btn.dataset.range === "all"
+    ) || els.rangeLabel.textContent === "All";
+  els.rangeLabel.textContent = isAllRange
+    ? "All"
+    : formatRangeLabel(start, end);
   showStatusSpinner();
 
   try {
@@ -421,7 +427,6 @@ export async function loadActivities() {
 
     state.allActivities = await api(`/api/activities?${params.toString()}`);
     addActivityTypeFilterButtons(state.allActivities);
-
     await updateActivityDisplay();
 
     updateAuthUI(true);

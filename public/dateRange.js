@@ -2,12 +2,16 @@ import { els } from "./dom.js";
 import { state } from "./state.js";
 
 const toInputValue = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
   const tzOffset = date.getTimezoneOffset();
   const local = new Date(date.getTime() - tzOffset * 60000);
   return local.toISOString().split("T")[0];
 };
 
 export const formatRangeLabel = (start, end) => {
+  if (start === "all" || end === "all") {
+    return "All";
+  }
   const opts = { month: "short", day: "numeric", year: "numeric" };
   return `${start.toLocaleDateString(undefined, opts)} → ${end.toLocaleDateString(
     undefined,
@@ -24,8 +28,9 @@ function syncRangePickerFromInputs() {
 }
 
 export function setDateInputs(startDate, endDate, syncPicker = true) {
-  els.startDate.value = toInputValue(startDate);
-  els.endDate.value = toInputValue(endDate);
+  const isAll = startDate === "all" || endDate === "all";
+  els.startDate.value = isAll ? "" : toInputValue(startDate);
+  els.endDate.value = isAll ? "" : toInputValue(endDate);
   els.rangeLabel.textContent = formatRangeLabel(startDate, endDate);
   if (syncPicker) {
     syncRangePickerFromInputs();
@@ -88,19 +93,23 @@ export function applyRange(range, onRangeSelected) {
   switch (range) {
     case "week":
       start.setDate(end.getDate() - 7);
+      setDateInputs(start, end);
       break;
     case "month":
       start.setMonth(end.getMonth() - 1);
+      setDateInputs(start, end);
       break;
     case "year":
       start.setFullYear(end.getFullYear() - 1);
+      setDateInputs(start, end);
       break;
     default:
       start.setFullYear(2009, 2, 1);
+      setDateInputs(start, end);
+      els.rangeLabel.textContent = "All";
       break;
   }
 
-  setDateInputs(start, end);
   highlightQuick(range);
   onRangeSelected?.();
 }
