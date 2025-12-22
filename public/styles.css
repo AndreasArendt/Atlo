@@ -233,8 +233,29 @@ button:active { transform: translateY(0); }
 
 .overview {
   display: flex;
-  gap: 36px;
-  flex-wrap: wrap;
+  gap: 12px;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex: 1 1 auto;
+  min-width: 400px;
+}
+
+.overview > div {
+  text-align: right;
+}
+
+.overview > div:first-child {
+  flex: 0 0 150px;
+  min-width: 150px;
+  max-width: 150px;
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+.overview > div:last-child {
+  flex: 1 1 auto;
+  min-width: 250px;
 }
 
 .label {
@@ -243,12 +264,29 @@ button:active { transform: translateY(0); }
   letter-spacing: 0.15em;
   color: var(--muted);
   margin: 0 0 6px;
+  display: block;
+  text-align: right;
 }
 
 .value {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
+  min-height: 28px;
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-left: 10px;
+  padding-right: 6px;
+}
+
+#count {
+  display: inline-block;
+  padding-left: 4px;
 }
 
 .map-panel {
