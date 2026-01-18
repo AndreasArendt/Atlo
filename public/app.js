@@ -107,7 +107,7 @@ async function init() {
     return;
   }
 
-  applyRange("year", loadActivities);
+  applyRange("calendar-year", loadActivities);
   initRangePicker(loadActivities);
 
   checkAuthStatus().then((authed) => {
