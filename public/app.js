@@ -42,6 +42,7 @@ async function initMapInstance() {
 }
 
 async function handleAuthenticated() {
+  ensureRangeUiReady();
   if (!state.mapInstance) {
     const mapReady = await initMapInstance();
     if (!mapReady) return;
@@ -60,6 +61,15 @@ function handleLogoutCleanup() {
   renderCurrentPage();
   if (state.mapInstance) {
     renderPolylines(state.mapInstance, []);
+  }
+}
+
+function ensureRangeUiReady() {
+  if (!els.startDate?.value || !els.endDate?.value) {
+    applyRange("calendar-year");
+  }
+  if (!state.rangePickerInstance) {
+    initRangePicker(loadActivities);
   }
 }
 
@@ -83,6 +93,7 @@ async function init() {
   bindListToggle();
   setActiveMapStyle(state.activeMapStyle);
   setActiveActivitySummaryButton(state.activeSummaryStyle);
+  ensureRangeUiReady();
 
   bindConnectButton({
     onAuthenticated: handleAuthenticated,
@@ -107,8 +118,7 @@ async function init() {
     return;
   }
 
-  applyRange("calendar-year", loadActivities);
-  initRangePicker(loadActivities);
+  await loadActivities();
 
   checkAuthStatus().then((authed) => {
     updateAuthUI(authed);
