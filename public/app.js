@@ -1,6 +1,12 @@
 import { initMap, renderPolylines } from "./map.js";
 import { showStatusMessage } from "./ui.js";
-import { bindRangeButtons, applyRange, initRangePicker } from "./dateRange.js";
+import {
+  bindRangeButtons,
+  bindRangeChoosers,
+  applyRange,
+  bindRangeLabelTrigger,
+  initRangePicker,
+} from "./dateRange.js";
 import {
   loadActivities,
   bindMapStyleButtons,
@@ -42,7 +48,12 @@ async function initMapInstance() {
 }
 
 async function handleAuthenticated() {
-  ensureRangeUiReady();
+  if (!els.startDate?.value || !els.endDate?.value) {
+    applyRange("calendar-year");
+  }
+  if (!state.rangePickerInstance) {
+    initRangePicker(loadActivities);
+  }
   if (!state.mapInstance) {
     const mapReady = await initMapInstance();
     if (!mapReady) return;
@@ -64,15 +75,6 @@ function handleLogoutCleanup() {
   }
 }
 
-function ensureRangeUiReady() {
-  if (!els.startDate?.value || !els.endDate?.value) {
-    applyRange("calendar-year");
-  }
-  if (!state.rangePickerInstance) {
-    initRangePicker(loadActivities);
-  }
-}
-
 async function init() {
   if (isLocalHost()) {
     // Clear persisted state while working locally so changes are easy to test.
@@ -87,13 +89,16 @@ async function init() {
   els.connect?.classList.add("cookie-consent-given");
 
   bindRangeButtons(loadActivities);
+  bindRangeChoosers();
+  bindRangeLabelTrigger(loadActivities);
   bindMapStyleButtons();
   bindSummaryStyleButtons();
   bindPaginationControls();
   bindListToggle();
   setActiveMapStyle(state.activeMapStyle);
   setActiveActivitySummaryButton(state.activeSummaryStyle);
-  ensureRangeUiReady();
+  applyRange("calendar-year");
+  initRangePicker(loadActivities);
 
   bindConnectButton({
     onAuthenticated: handleAuthenticated,

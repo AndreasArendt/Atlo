@@ -88,22 +88,41 @@ function updateChoosers(range) {
   });
 }
 
-function syncRangePickerFromInputs() {
-  if (!state.rangePickerInstance) return;
-  const startValue = els.startDate.value;
-  const endValue = els.endDate.value;
-  if (!startValue || !endValue) return;
-  state.rangePickerInstance.setDate([startValue, endValue], false);
+function closeAllChoosers() {
+  Object.values(CHOOSERS).forEach(({ chooser }) => {
+    const el = chooser?.();
+    if (el) {
+      el.removeAttribute("open");
+    }
+  });
 }
 
-export function setDateInputs(startDate, endDate, syncPicker = true) {
+function openChooserForRange(range) {
+  const groupKey = RANGE_GROUP_LOOKUP[range] || "month";
+  const chooser = CHOOSERS[groupKey]?.chooser?.();
+  if (!chooser) return;
+
+  closeAllChoosers();
+  chooser.setAttribute("open", "");
+  chooser.querySelector("summary")?.focus?.({ preventScroll: true });
+  chooser.scrollIntoView({
+    behavior: "smooth",
+    block: "center",
+    inline: "center",
+  });
+}
+
+export function setDateInputs(startDate, endDate) {
   const isAll = startDate === "all" || endDate === "all";
   els.startDate.value = isAll ? "" : toInputValue(startDate);
   els.endDate.value = isAll ? "" : toInputValue(endDate);
-  els.rangeLabel.textContent = formatRangeLabel(startDate, endDate);
-  if (syncPicker) {
-    syncRangePickerFromInputs();
+  const label = formatRangeLabel(startDate, endDate);
+  const labelTarget =
+    els.rangeLabel?.querySelector(".range-label-text") || els.rangeLabel;
+  if (labelTarget) {
+    labelTarget.textContent = label;
   }
+  syncRangePickerFromInputs();
 }
 
 export function getDateRange() {
@@ -112,11 +131,26 @@ export function getDateRange() {
   return { start, end };
 }
 
+export function highlightQuick(range) {
+  els.quickButtons.forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.range === range);
+  });
+  updateChoosers(range);
+}
+
+function syncRangePickerFromInputs() {
+  if (!state.rangePickerInstance) return;
+  const startValue = els.startDate.value;
+  const endValue = els.endDate.value;
+  if (!startValue || !endValue) return;
+  state.rangePickerInstance.setDate([startValue, endValue], false);
+}
+
 function handleRangeSelection(selectedDates, onRangeSelected) {
   if (!Array.isArray(selectedDates) || selectedDates.length < 2) return;
   const [startDate, endDate] = selectedDates;
   if (!startDate || !endDate) return;
-  setDateInputs(startDate, endDate, false);
+  setDateInputs(startDate, endDate);
   highlightQuick(null);
   onRangeSelected?.();
 }
@@ -136,24 +170,10 @@ export function initRangePicker(onRangeSelected) {
     allowInput: false,
     disableMobile: true,
     position: "below",
-    positionElement: els.endDate || els.startDate,
+    positionElement: els.rangeLabel || els.endDate || els.startDate,
+    appendTo: els.rangeLabel?.parentElement,
     onClose: (dates) => handleRangeSelection(dates, onRangeSelected),
   });
-
-  [els.startDate, els.endDate].forEach((input) => {
-    input?.addEventListener("click", () => {
-      if (state.rangePickerInstance) {
-        state.rangePickerInstance.open();
-      }
-    });
-  });
-}
-
-export function highlightQuick(range) {
-  els.quickButtons.forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.range === range);
-  });
-  updateChoosers(range);
 }
 
 export function applyRange(range, onRangeSelected) {
@@ -198,7 +218,11 @@ export function applyRange(range, onRangeSelected) {
       start = new Date(2009, 2, 1);
       end = new Date(today);
       setDateInputs(start, end);
-      els.rangeLabel.textContent = "All";
+      const labelTarget =
+        els.rangeLabel?.querySelector(".range-label-text") || els.rangeLabel;
+      if (labelTarget) {
+        labelTarget.textContent = "All";
+      }
       highlightQuick(range);
       onRangeSelected?.();
       return;
@@ -215,7 +239,47 @@ export function bindRangeButtons(onRangeSelected) {
   els.quickButtons.forEach((btn) => {
     btn.addEventListener("click", () => {
       applyRange(btn.dataset.range, onRangeSelected);
-      btn.closest("details")?.removeAttribute("open");
+      Object.values(CHOOSERS).forEach(({ chooser }) => {
+        chooser?.()?.removeAttribute("open");
+      });
     });
+  });
+}
+
+export function bindRangeChoosers() {
+  const chooserEls = Object.values(CHOOSERS)
+    .map((refs) => refs.chooser?.())
+    .filter(Boolean);
+
+  if (!chooserEls.length) return;
+
+  chooserEls.forEach((chooserEl) => {
+    const summary = chooserEl.querySelector("summary");
+    summary?.addEventListener("click", () => {
+      chooserEls.forEach((other) => {
+        if (other !== chooserEl) {
+          other.removeAttribute("open");
+        }
+      });
+    });
+
+    chooserEl.addEventListener("toggle", () => {
+      if (!chooserEl.open) return;
+      chooserEls.forEach((other) => {
+        if (other !== chooserEl) {
+          other.removeAttribute("open");
+        }
+      });
+    });
+  });
+}
+
+export function bindRangeLabelTrigger(onRangeSelected) {
+  if (!els.rangeLabel) return;
+  els.rangeLabel.addEventListener("click", () => {
+    if (!state.rangePickerInstance) {
+      initRangePicker(onRangeSelected);
+    }
+    state.rangePickerInstance?.open();
   });
 }

@@ -404,13 +404,18 @@ export async function loadActivities() {
     return;
   }
 
+  const labelTarget =
+    els.rangeLabel?.querySelector(".range-label-text") || els.rangeLabel;
+  const currentLabel = labelTarget?.textContent?.trim() || "";
   const isAllRange =
     Array.from(els.quickButtons || []).some(
       (btn) => btn.classList.contains("active") && btn.dataset.range === "all"
-    ) || els.rangeLabel.textContent === "All";
-  els.rangeLabel.textContent = isAllRange
-    ? "All"
-    : formatRangeLabel(start, end);
+    ) || currentLabel === "All";
+  if (labelTarget) {
+    labelTarget.textContent = isAllRange
+      ? "All"
+      : formatRangeLabel(start, end);
+  }
   showStatusSpinner();
 
   try {
