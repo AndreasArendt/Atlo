@@ -1014,57 +1014,100 @@ li.muted {
 @media (max-width: 700px) {
   body { padding: 24px 12px; }
 
+  .panel {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  .controls {
+    padding: 12px;
+  }
+
   .controls-grid {
-    flex-direction: column;
-    align-items: flex-start;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    column-gap: 12px;
+    row-gap: 6px;
+    align-items: center;
   }
 
   .controls-left {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    width: 100%;
+    display: contents;
   }
 
   .range-display-card {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    display: contents;
+  }
+
+  .range-label-title {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+  }
+
+  .range-label {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
   }
 
   .quick-range {
+    grid-column: 1 / -1;
+    grid-row: 3;
     margin-left: 0;
     padding: 0;
     width: 100%;
     justify-content: flex-start;
     overflow-x: auto;
+    gap: 6px;
   }
 
   .quick-range button,
   .quick-range summary {
     white-space: nowrap;
+    min-width: 96px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .quick-range button[data-range="all"] {
+    min-width: 52px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .overview {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    min-width: 0;
-    gap: 6px;
-    align-items: flex-start;
-    justify-content: flex-start;
+    display: contents;
   }
 
   .overview > div {
-    display: block;
-    text-align: left;
+    display: contents;
+  }
+
+  .overview .label {
+    grid-column: 2;
+    grid-row: 1;
+    text-align: right;
+    justify-self: end;
+    margin: 0;
+  }
+
+  .overview .value {
+    grid-column: 2;
+    grid-row: 2;
+    text-align: right;
+    justify-self: end;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    padding: 0;
   }
 
   .label,
   .value {
-    text-align: left;
     padding-left: 0;
     padding-right: 0;
   }
