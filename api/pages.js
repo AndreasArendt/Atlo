@@ -20,6 +20,11 @@ const markdownPages = {
     file: path.join(process.cwd(), "content", "faq.md"),
     bodyClass: "markdown-page",
   },
+  analysis: {
+    title: "Training Load Notes",
+    file: path.join(process.cwd(), "content", "analysis.md"),
+    bodyClass: "markdown-page",
+  },
 };
 
 const helpTemplate = () => `

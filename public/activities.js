@@ -172,6 +172,95 @@ function computeTotals(activities) {
   );
 }
 
+function formatSufferScore(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "0";
+  return Math.round(numeric).toLocaleString();
+}
+
+function buildSufferSparkline(activities = [], scores = [], maxBars = 28) {
+  const cutoff7Days = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const count = Math.min(activities.length, scores.length, maxBars);
+  const pairs = [];
+
+  for (let i = 0; i < count; i += 1) {
+    const activity = activities[i];
+    const score = Number(scores[i]) || 0;
+    const dateValue = activity?.date;
+    const activityTime =
+      typeof dateValue === "number"
+        ? dateValue
+        : dateValue instanceof Date
+        ? dateValue.getTime()
+        : Date.parse(dateValue);
+    const isRecent = !Number.isNaN(activityTime) && activityTime >= cutoff7Days;
+    pairs.push({ value: score, isRecent });
+  }
+
+  const values = pairs.reverse();
+  const maxValue = values.length
+    ? values.reduce((max, item) => Math.max(max, item.value), 0)
+    : 0;
+
+  return values.map((item) => {
+    const height = maxValue
+      ? Math.max((item.value / maxValue) * 100, item.value ? 6 : 0)
+      : 0;
+    return {
+      height: Math.min(height, 100),
+      isRecent: item.isRecent,
+    };
+  });
+}
+
+function updateAnalysisDisplay() {
+  const trainingLoadEl = document.querySelector(
+    '[data-metric="training-load"]'
+  );
+  const loadShortEl = document.querySelector('[data-metric="load-short"]');
+  const sparklineEl = document.querySelector(".analysis-sparkline");
+
+  const last7Total = (state.last7DaysSufferScore || []).reduce(
+    (sum, score) => sum + (Number(score) || 0),
+    0
+  );
+  const last28Total = (state.last28DaysSufferScore || []).reduce(
+    (sum, score) => sum + (Number(score) || 0),
+    0
+  );
+
+  if (trainingLoadEl) {
+    trainingLoadEl.textContent = `${formatSufferScore(
+      last7Total
+    )} / ${formatSufferScore(last28Total)}`;
+  }
+
+  if (loadShortEl) {
+    loadShortEl.textContent = formatSufferScore(last7Total);
+  }
+
+  if (!sparklineEl) return;
+
+  const bars = buildSufferSparkline(
+    state.last28DaysActivities,
+    state.last28DaysSufferScore
+  );
+  sparklineEl.style.setProperty(
+    "--bar-count",
+    Math.max(1, bars.length).toString()
+  );
+  const helpLink =
+    '<a class="analysis-help" href="/api/pages?slug=analysis" target="_blank" rel="noopener noreferrer" aria-label="Training load notes">?</a>';
+  sparklineEl.innerHTML = bars
+    .map(
+      (bar) =>
+        `<span style="--h: ${bar.height}%"${
+          bar.isRecent ? ' class="is-recent"' : ""
+        }></span>`
+    )
+    .join("") + helpLink;
+}
+
 const getCssVar = (name, fallback) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim() ||
   fallback;
@@ -323,6 +412,44 @@ export async function updateActivityDisplay({ skipMapUpdate = false } = {}) {
       els.pagination.classList.toggle("display-summary", !viewMode.showPagination);
     }
 
+    const now = Date.now();
+    const cutoff7Days = now - 7 * 24 * 60 * 60 * 1000;
+    const cutoff28Days = now - 28 * 24 * 60 * 60 * 1000;
+    const last7DaysActivities = [];
+    const last28DaysActivities = [];
+    const last7DaysSufferScore = [];
+    const last28DaysSufferScore = [];
+    
+    for (const activity of state.allActivities) {
+      const dateValue = activity?.date;
+      const activityTime =
+        typeof dateValue === "number"
+          ? dateValue
+          : dateValue instanceof Date
+          ? dateValue.getTime()
+          : Date.parse(dateValue);
+
+      if (Number.isNaN(activityTime)) continue;
+      if (activityTime < cutoff28Days) break;
+
+      last28DaysActivities.push(activity);
+      const movingTime = Number(activity?.moving_time) || 0;
+      const averageHeartrate = Number(activity?.average_heartrate) || 0;
+      const sufferScore = (movingTime / 60.0) * (averageHeartrate / 190.0);
+      last28DaysSufferScore.push(sufferScore);
+
+      if (activityTime >= cutoff7Days) {
+        last7DaysActivities.push(activity);
+        last7DaysSufferScore.push(sufferScore);
+      }
+    }
+
+    state.last7DaysActivities = last7DaysActivities;
+    state.last28DaysActivities = last28DaysActivities;
+    state.last7DaysSufferScore = last7DaysSufferScore;
+    state.last28DaysSufferScore = last28DaysSufferScore;
+    updateAnalysisDisplay();
+
     if (!state.allActivities.length) {
       state.displayActivities = [];
       els.count.textContent = "0";
@@ -334,6 +461,7 @@ export async function updateActivityDisplay({ skipMapUpdate = false } = {}) {
       state.currentPage = 1;
       renderCurrentPage();
       updatePaginationControls();
+
       return;
     }
 

@@ -14,4 +14,8 @@ export const state = {
   activityFilterHandlerBound: false,
   gearCache: new Map(),
   gearChartInstance: null,
+  last7DaysActivities: [],
+  last28DaysActivities: [],
+  last7DaysSufferScore: [],
+  last28DaysSufferScore: []
 };
