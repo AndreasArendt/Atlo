@@ -23,7 +23,7 @@ import {
   checkAuthStatus,
   updateAuthUI,
 } from "./auth.js";
-import { initCookieBanner, initPrivacyBanner /*, clearLocalStateForDev */ } from "./consent.js";
+import { initCookieBanner, initPrivacyBanner, clearLocalStateForDev } from "./consent.js";
 import { els } from "./dom.js";
 import { state } from "./state.js";
 
@@ -79,7 +79,7 @@ function handleLogoutCleanup() {
 async function init() {
   if (isLocalHost()) {
     // Clear persisted state while working locally so changes are easy to test.
-    // clearLocalStateForDev();
+     clearLocalStateForDev();
   }
 
   const consentGiven = await initCookieBanner();
