@@ -18,5 +18,11 @@ export const state = {
   last28DaysActivities: [],
   last7DaysSufferScore: [],
   last28DaysSufferScore: [],
-  maxHeartRate: null
+  maxHeartRate: null,
+  trainingLoadActivities: [],
+  trainingLoad: {
+    atl: 0,
+    ctl: 0,
+    ratio: null
+  }
 };

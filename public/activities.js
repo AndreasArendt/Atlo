@@ -20,12 +20,10 @@ import {
   bindPaginationControls,
   bindListToggle,
 } from "./listView.js";
-import {
-  ensureMaxHeartRate,
-  updateTrainingLoadFromActivities,
-} from "./analysis.js";
+import { ensureMaxHeartRate, updateTrainingLoadFromActivities } from "./analysis.js";
 
 const AUTH_ERROR_PATTERN = /(Not authenticated|Missing session state|No token)/i;
+const TRAINING_LOAD_LOOKBACK_DAYS = 90;
 
 function computeTotals(activities) {
   return activities.reduce(
@@ -190,8 +188,6 @@ export async function updateActivityDisplay({ skipMapUpdate = false } = {}) {
       els.pagination.classList.toggle("display-summary", !viewMode.showPagination);
     }
 
-    updateTrainingLoadFromActivities(state.allActivities);
-
     if (!state.allActivities.length) {
       state.displayActivities = [];
       els.count.textContent = "0";
@@ -300,7 +296,32 @@ export async function loadActivities() {
       before: beforeParam,
     });
 
-    state.allActivities = await api(`/api/activities?${params.toString()}`);
+    const trainingBefore = new Date();
+    const trainingAfter = new Date(trainingBefore);
+    trainingAfter.setDate(
+      trainingAfter.getDate() - TRAINING_LOAD_LOOKBACK_DAYS
+    );
+    const trainingParams = new URLSearchParams({
+      after: trainingAfter.toISOString(),
+      before: trainingBefore.toISOString(),
+    });
+
+    const [listResult, trainingResult] = await Promise.allSettled([
+      api(`/api/activities?${params.toString()}`),
+      api(`/api/activities?${trainingParams.toString()}`),
+    ]);
+
+    if (listResult.status !== "fulfilled") {
+      throw listResult.reason;
+    }
+
+    state.allActivities = listResult.value;
+    state.trainingLoadActivities =
+      trainingResult.status === "fulfilled"
+        ? trainingResult.value
+        : listResult.value;
+
+    updateTrainingLoadFromActivities(state.trainingLoadActivities);
     addActivityTypeFilterButtons(state.allActivities, () =>
       updateActivityDisplay().catch((err) =>
         console.error("Failed to update activities:", err)

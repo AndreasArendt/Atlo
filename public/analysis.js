@@ -2,6 +2,10 @@ import { els } from "./dom.js";
 import { state } from "./state.js";
 
 const DEFAULT_MAX_HEART_RATE = 190;
+const RESTING_HEART_RATE = 60;
+const CTL_WINDOW_DAYS = 42;
+const ATL_WINDOW_DAYS = 7;
+const DEBUG_STORAGE_KEY = "atlo.debugTrainingLoad";
 
 function formatSufferRatio(value, hasData = true) {
   if (!hasData) return "—";
@@ -12,13 +16,6 @@ function formatSufferRatio(value, hasData = true) {
 }
 
 function getTrainingLoadReferenceTime() {
-  const endValue = els.endDate?.value;
-  if (endValue) {
-    const endDate = new Date(endValue);
-    if (!Number.isNaN(endDate.getTime())) {
-      return endDate.getTime();
-    }
-  }
   return Date.now();
 }
 
@@ -28,6 +25,22 @@ function getMaxHeartRateValue() {
     return numeric;
   }
   return DEFAULT_MAX_HEART_RATE;
+}
+
+function shouldDebugTrainingLoad() {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("debugLoad") === "1") return true;
+  } catch {
+    // ignore
+  }
+
+  try {
+    return window.localStorage?.getItem(DEBUG_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
 }
 
 export async function ensureMaxHeartRate() {
@@ -100,17 +113,10 @@ function updateAnalysisDisplay() {
   const loadShortEl = document.querySelector('[data-metric="load-short"]');
   const sparklineEl = document.querySelector(".analysis-sparkline");
 
-  const last7Total = (state.last7DaysSufferScore || []).reduce(
-    (sum, score) => sum + (Number(score) || 0),
-    0
-  );
-  const last28Total = (state.last28DaysSufferScore || []).reduce(
-    (sum, score) => sum + (Number(score) || 0),
-    0
-  );
-  const hasLast7Activities = (state.last7DaysActivities?.length || 0) > 0;
-  const hasRatioData = last28Total > 0 && hasLast7Activities && last7Total > 0;
-  const ratio = hasRatioData ? last7Total / last28Total : NaN;
+  const atl = Number(state.trainingLoad?.atl) || 0;
+  const ctl = Number(state.trainingLoad?.ctl) || 0;
+  const hasRatioData = ctl > 0;
+  const ratio = hasRatioData ? atl / ctl : NaN;
 
   if (trainingLoadEl) {
     trainingLoadEl.textContent = formatSufferRatio(ratio, hasRatioData);
@@ -145,15 +151,109 @@ function updateAnalysisDisplay() {
       .join("") + helpLink;
 }
 
+function computeTrimp(movingTimeSeconds, averageHeartrate, maxHeartRate) {
+  const durationMinutes = Number(movingTimeSeconds) / 60;
+  if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) return 0;
+  if (!Number.isFinite(averageHeartrate) || averageHeartrate <= 0) return 0;
+  if (!Number.isFinite(maxHeartRate) || maxHeartRate <= 0) return 0;
+  if (maxHeartRate <= RESTING_HEART_RATE) return 0;
+
+  const hrRatioRaw =
+    (averageHeartrate - RESTING_HEART_RATE) /
+    (maxHeartRate - RESTING_HEART_RATE);
+  const hrRatio = Math.min(Math.max(hrRatioRaw, 0), 1.2);
+  const b = 1.92;
+  return durationMinutes * hrRatio * Math.exp(b * hrRatio);
+}
+
+function computeAtlCtl(dailyLoads, referenceTime) {
+  const end = new Date(referenceTime);
+  if (Number.isNaN(end.getTime())) {
+    return { atl: 0, ctl: 0 };
+  }
+
+  const endUtc = new Date(
+    Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate())
+  );
+
+  const dayKeys = Object.keys(dailyLoads);
+  const earliestKey = dayKeys.sort()[0];
+  const defaultStart = new Date(endUtc);
+  defaultStart.setUTCDate(defaultStart.getUTCDate() - 90);
+
+  let startUtc = defaultStart;
+  if (earliestKey) {
+    const parsed = new Date(`${earliestKey}T00:00:00Z`);
+    if (!Number.isNaN(parsed.getTime()) && parsed < startUtc) {
+      startUtc = parsed;
+    }
+  }
+
+  let ctl = 0;
+  let atl = 0;
+  for (
+    let cursor = new Date(startUtc);
+    cursor <= endUtc;
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  ) {
+    const key = cursor.toISOString().slice(0, 10);
+    const load = Number(dailyLoads[key]) || 0;
+    ctl += (load - ctl) / CTL_WINDOW_DAYS;
+    atl += (load - atl) / ATL_WINDOW_DAYS;
+  }
+
+  return { atl, ctl };
+}
+
 export function updateTrainingLoadFromActivities(activities = []) {
   const now = getTrainingLoadReferenceTime();
   const cutoff7Days = now - 7 * 24 * 60 * 60 * 1000;
   const cutoff28Days = now - 28 * 24 * 60 * 60 * 1000;
+  const cutoffCtl = now - 90 * 24 * 60 * 60 * 1000;
   const last7DaysActivities = [];
   const last28DaysActivities = [];
   const last7DaysSufferScore = [];
   const last28DaysSufferScore = [];
   const maxHeartRate = getMaxHeartRateValue();
+  const dailyLoads = {};
+  const debugEnabled = shouldDebugTrainingLoad();
+  const debug = debugEnabled
+    ? {
+        referenceTime: new Date(now).toISOString(),
+        maxHeartRate,
+        restingHeartRate: RESTING_HEART_RATE,
+        windowDays: { atl: ATL_WINDOW_DAYS, ctl: CTL_WINDOW_DAYS },
+        cutoffs: {
+          last7: new Date(cutoff7Days).toISOString(),
+          last28: new Date(cutoff28Days).toISOString(),
+          ctlLookback: new Date(cutoffCtl).toISOString(),
+        },
+        activitiesTotal: activities.length,
+        activitiesMissingHr: 0,
+        activitiesMissingMovingTime: 0,
+        hrSamples: 0,
+        hrSum: 0,
+        hrMin: null,
+        hrMax: null,
+        movingTimeSamples: 0,
+        movingTimeSum: 0,
+        movingTimeMin: null,
+        movingTimeMax: null,
+        hrRatioMin: null,
+        hrRatioMax: null,
+        trimpSamples: 0,
+        trimpSum: 0,
+        trimpMin: null,
+        trimpMax: null,
+        last7TrimpSum: 0,
+        last28TrimpSum: 0,
+        earliestActivity: null,
+        latestActivity: null,
+        sortedDesc: true,
+      }
+    : null;
+
+  let previousTime = null;
 
   for (const activity of activities) {
     const dateValue = activity?.date;
@@ -165,18 +265,104 @@ export function updateTrainingLoadFromActivities(activities = []) {
         : Date.parse(dateValue);
 
     if (Number.isNaN(activityTime)) continue;
-    if (activityTime < cutoff28Days) break;
+    if (debug) {
+      if (previousTime !== null && activityTime > previousTime) {
+        debug.sortedDesc = false;
+      }
+      previousTime = activityTime;
+      debug.earliestActivity =
+        debug.earliestActivity === null
+          ? activityTime
+          : Math.min(debug.earliestActivity, activityTime);
+      debug.latestActivity =
+        debug.latestActivity === null
+          ? activityTime
+          : Math.max(debug.latestActivity, activityTime);
+    }
 
-    last28DaysActivities.push(activity);
     const movingTime = Number(activity?.moving_time) || 0;
     const averageHeartrate = Number(activity?.average_heartrate) || 0;
-    const sufferScore =
-      (movingTime / 60.0) * (averageHeartrate / maxHeartRate);
-    last28DaysSufferScore.push(sufferScore);
+    const trimpScore = computeTrimp(
+      movingTime,
+      averageHeartrate,
+      maxHeartRate
+    );
+
+    if (debug) {
+      if (averageHeartrate <= 0) {
+        debug.activitiesMissingHr += 1;
+      } else {
+        debug.hrSamples += 1;
+        debug.hrSum += averageHeartrate;
+        debug.hrMin =
+          debug.hrMin === null
+            ? averageHeartrate
+            : Math.min(debug.hrMin, averageHeartrate);
+        debug.hrMax =
+          debug.hrMax === null
+            ? averageHeartrate
+            : Math.max(debug.hrMax, averageHeartrate);
+      }
+
+      if (movingTime <= 0) {
+        debug.activitiesMissingMovingTime += 1;
+      } else {
+        debug.movingTimeSamples += 1;
+        debug.movingTimeSum += movingTime;
+        debug.movingTimeMin =
+          debug.movingTimeMin === null
+            ? movingTime
+            : Math.min(debug.movingTimeMin, movingTime);
+        debug.movingTimeMax =
+          debug.movingTimeMax === null
+            ? movingTime
+            : Math.max(debug.movingTimeMax, movingTime);
+      }
+
+      if (maxHeartRate > RESTING_HEART_RATE && averageHeartrate > 0) {
+        const hrRatioRaw =
+          (averageHeartrate - RESTING_HEART_RATE) /
+          (maxHeartRate - RESTING_HEART_RATE);
+        const hrRatio = Math.min(Math.max(hrRatioRaw, 0), 1.2);
+        debug.hrRatioMin =
+          debug.hrRatioMin === null ? hrRatio : Math.min(debug.hrRatioMin, hrRatio);
+        debug.hrRatioMax =
+          debug.hrRatioMax === null ? hrRatio : Math.max(debug.hrRatioMax, hrRatio);
+      }
+
+      if (trimpScore > 0) {
+        debug.trimpSamples += 1;
+        debug.trimpSum += trimpScore;
+        debug.trimpMin =
+          debug.trimpMin === null
+            ? trimpScore
+            : Math.min(debug.trimpMin, trimpScore);
+        debug.trimpMax =
+          debug.trimpMax === null
+            ? trimpScore
+            : Math.max(debug.trimpMax, trimpScore);
+      }
+    }
+
+    if (activityTime >= cutoffCtl) {
+      const dayKey = new Date(activityTime).toISOString().slice(0, 10);
+      dailyLoads[dayKey] = (dailyLoads[dayKey] || 0) + trimpScore;
+    }
+
+    if (activityTime < cutoff28Days) continue;
+
+    last28DaysActivities.push(activity);
+    last28DaysSufferScore.push(trimpScore);
+    if (debug) {
+      debug.last28TrimpSum += trimpScore;
+    }
 
     if (activityTime >= cutoff7Days) {
       last7DaysActivities.push(activity);
-      last7DaysSufferScore.push(sufferScore);
+      last7DaysSufferScore.push(trimpScore);
+      if (debug) {
+        debug.last7TrimpSum += trimpScore;
+      }
     }
   }
 
@@ -184,5 +370,44 @@ export function updateTrainingLoadFromActivities(activities = []) {
   state.last28DaysActivities = last28DaysActivities;
   state.last7DaysSufferScore = last7DaysSufferScore;
   state.last28DaysSufferScore = last28DaysSufferScore;
+
+  const { atl, ctl } = computeAtlCtl(dailyLoads, now);
+  state.trainingLoad = {
+    atl,
+    ctl,
+    ratio: ctl > 0 ? atl / ctl : null,
+  };
+
+  if (debug) {
+    const dailyLoadValues = Object.values(dailyLoads).map((v) => Number(v) || 0);
+    const dailyLoadSum = dailyLoadValues.reduce((sum, v) => sum + v, 0);
+    debug.dailyLoadDays = dailyLoadValues.length;
+    debug.dailyLoadSum = dailyLoadSum;
+    debug.last7Count = last7DaysActivities.length;
+    debug.last28Count = last28DaysActivities.length;
+    debug.atl = atl;
+    debug.ctl = ctl;
+    debug.ratio = ctl > 0 ? atl / ctl : null;
+    debug.hrMean = debug.hrSamples ? debug.hrSum / debug.hrSamples : null;
+    debug.movingTimeMean =
+      debug.movingTimeSamples ? debug.movingTimeSum / debug.movingTimeSamples : null;
+    debug.trimpMean =
+      debug.trimpSamples ? debug.trimpSum / debug.trimpSamples : null;
+    debug.earliestActivity = debug.earliestActivity
+      ? new Date(debug.earliestActivity).toISOString()
+      : null;
+    debug.latestActivity = debug.latestActivity
+      ? new Date(debug.latestActivity).toISOString()
+      : null;
+
+    try {
+      window.__atloTrainingLoadDebug = debug;
+      console.groupCollapsed("Atlo training load debug");
+      console.log(debug);
+      console.groupEnd();
+    } catch {
+      // ignore
+    }
+  }
   updateAnalysisDisplay();
 }
