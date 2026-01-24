@@ -29,6 +29,3 @@ The scores are defined as followed:
 |0.8–1.3| productive|
 | >1.5 | elevated injury / overtraining risk|
 | <0.7 | likely under-stimulating|
-
-Notes:
-- The activity list uses your selected date range, but training load always uses the last 90 days ending today for stability.
