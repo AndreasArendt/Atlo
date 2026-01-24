@@ -131,14 +131,6 @@
             <span class="insight-label">Training load</span>
             <span class="insight-value" data-metric="load-short">—</span>
           </a>
-          <a class="insight-chip" href="#analysis-strip">
-            <span class="insight-label">Marathon est.</span>
-            <span class="insight-value" data-metric="marathon-estimate">—</span>
-          </a>
-          <a class="insight-chip" href="#analysis-strip">
-            <span class="insight-label">Goal progress</span>
-            <span class="insight-value" data-metric="goal-progress">—</span>
-          </a>
         </div>
       </div>
       <div class="analysis-strip" id="analysis-strip" aria-label="Analysis highlights">
@@ -163,14 +155,23 @@
             <p class="label">Yearly goal</p>
             <span class="analysis-meta">Distance</span>
           </div>
-          <p class="analysis-note">Coming soon…</p>
+          <p class="analysis-value" data-metric="goal-distance">—</p>
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" style="width: 0%"></div>
+          </div>
+          <p class="analysis-note">Set a target to track progress.</p>
         </article>
         <article class="analysis-card">
           <div class="analysis-card-header">
             <p class="label">Prediction</p>
             <span class="analysis-meta">Estimate</span>
           </div>
-          <p class="analysis-note">Coming soon…</p>
+          <p class="analysis-value" data-metric="marathon-time">—</p>
+          <div class="analysis-kicker">
+            <span>Confidence</span>
+            <span class="analysis-chip">—</span>
+          </div>
+          <p class="analysis-note">Based on recent runs.</p>
         </article>
       </div>
     </section>

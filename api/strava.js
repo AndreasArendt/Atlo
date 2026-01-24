@@ -73,7 +73,20 @@ export default async function handler(req, res) {
 
     const token = await tokenResponse.json();
     delete token["athlete"]; // Remove athlete info to reduce stored data
-    
+
+    const zonesResponse = await fetch(
+      "https://www.strava.com/api/v3/athlete/zones",
+      { headers: { Authorization: `Bearer ${token.access_token}` } }
+    );
+    if (!zonesResponse.ok) {
+      const msg = await zonesResponse.text();
+      console.warn(`Zones fetch failed: ${msg}`);
+    } else {
+      const zones = await zonesResponse.json();
+      console.log("Zones data:", JSON.stringify(zones, null, 2));
+
+    }
+
     // Persist per-user token securely with a reasonable TTL (30 days)
     const ttlSeconds = 60 * 60 * 24 * 30;
     await kv.set(`strava:token:${state}`, token, { ex: ttlSeconds });

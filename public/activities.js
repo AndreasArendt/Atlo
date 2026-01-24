@@ -77,8 +77,6 @@ function applyActivityFilter(filter) {
     (activity) => activity.type === normalizedFilter
   );
   state.displayGearIDs = collectGearIds(state.displayActivities);
-
-  console.log(state.displayGearIDs);
 }
 
 function setActiveActivityFilterButton(filterLabel = "All") {

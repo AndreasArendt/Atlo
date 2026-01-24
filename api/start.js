@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     response_type: "code",
     redirect_uri: `${process.env.BASE_URL}/api/strava`,
     approval_prompt: "auto",
-    scope: "read,activity:read",
+    scope: "read,activity:read,profile:read_all",
     state,
   });
 
@@ -56,10 +56,18 @@ export default async function handler(req, res) {
     }
   }
 
+  const isLocal =
+    process.env.VERCEL_ENV === "development" ||
+    process.env.NODE_ENV === "development" ||
+    host === "localhost" ||
+    host?.startsWith("localhost:") ||
+    host === "127.0.0.1" ||
+    host?.startsWith("127.0.0.1:");
+
   const cookie = createCookie(SESSION_COOKIE_NAME, cookieValue, {
     maxAge: SESSION_TTL_SECONDS,
-    sameSite: "None", // needed so Strava redirect includes cookie
-    secure: true,
+    sameSite: isLocal ? "Lax" : "None", // None requires Secure; local dev uses Lax over http
+    secure: !isLocal,
     domain: cookieDomain,
   });
 

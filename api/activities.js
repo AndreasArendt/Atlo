@@ -77,7 +77,7 @@ async function queryActivities(token, req, res) {
 
     const data = await resp.json();
 
-    console.log(data);
+    //console.log(data);
 
     simplified.push(
       ...data
