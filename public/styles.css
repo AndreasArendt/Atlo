@@ -750,7 +750,7 @@ button:active { transform: translateY(0); }
   position: relative;
 }
 
-.analysis-sparkline span {
+.analysis-sparkline .analysis-sparkline-bar {
   width: min(
     12px,
     calc((100% - (var(--bar-count) - 1) * var(--bar-gap)) / var(--bar-count))
@@ -759,10 +759,30 @@ button:active { transform: translateY(0); }
   border-radius: 6px;
   background: rgba(17, 60, 76, 0.25);
   opacity: 0.35;
-  transition: opacity 0.3s ease, background 0.3s ease;
+  transition: transform 140ms ease, opacity 140ms ease, background 140ms ease,
+    filter 140ms ease;
+  display: block;
+  text-decoration: none;
+  cursor: pointer;
+  transform-origin: bottom;
 }
 
-.analysis-sparkline span.is-recent {
+.analysis-sparkline .analysis-sparkline-bar:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+
+.analysis-sparkline .analysis-sparkline-bar:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.analysis-sparkline .analysis-sparkline-bar:focus-visible {
+  outline: 2px solid rgba(17, 60, 76, 0.45);
+  outline-offset: 1px;
+}
+
+.analysis-sparkline .analysis-sparkline-bar.is-recent {
   background: rgba(17, 60, 76, 0.75);
   opacity: 1;
   animation: sparklineFade 0.6s ease;

@@ -70,7 +70,8 @@ function buildSufferSparkline(
   activities = [],
   scores = [],
   maxBars = 28,
-  referenceTime = Date.now()
+  referenceTime = Date.now(),
+  maxValueOverride = null
 ) {
   const cutoff7Days = referenceTime - 7 * 24 * 60 * 60 * 1000;
   const count = Math.min(activities.length, scores.length, maxBars);
@@ -87,13 +88,17 @@ function buildSufferSparkline(
         ? dateValue.getTime()
         : Date.parse(dateValue);
     const isRecent = !Number.isNaN(activityTime) && activityTime >= cutoff7Days;
-    pairs.push({ value: score, isRecent });
+    pairs.push({ value: score, isRecent, activityId: activity?.id });
   }
 
   const values = pairs.reverse();
-  const maxValue = values.length
+  const localMax = values.length
     ? values.reduce((max, item) => Math.max(max, item.value), 0)
     : 0;
+  const maxValue =
+    Number.isFinite(maxValueOverride) && maxValueOverride > 0
+      ? maxValueOverride
+      : localMax;
 
   return values.map((item) => {
     const height = maxValue
@@ -102,6 +107,7 @@ function buildSufferSparkline(
     return {
       height: Math.min(height, 100),
       isRecent: item.isRecent,
+      activityId: item.activityId,
     };
   });
 }
@@ -132,7 +138,8 @@ function updateAnalysisDisplay() {
     state.last28DaysActivities,
     state.last28DaysSufferScore,
     28,
-    getTrainingLoadReferenceTime()
+    getTrainingLoadReferenceTime(),
+    state.maxSufferScore
   );
   sparklineEl.style.setProperty(
     "--bar-count",
@@ -142,12 +149,18 @@ function updateAnalysisDisplay() {
     '<a class="analysis-help" href="/api/pages?slug=analysis" target="_blank" rel="noopener noreferrer" aria-label="Training load notes">?</a>';
   sparklineEl.innerHTML =
     bars
-      .map(
-        (bar) =>
-          `<span style="--h: ${bar.height}%"${
-            bar.isRecent ? ' class="is-recent"' : ""
-          }></span>`
-      )
+      .map((bar) => {
+        const classes = `analysis-sparkline-bar${
+          bar.isRecent ? " is-recent" : ""
+        }`;
+        if (!bar.activityId) {
+          return `<span class="${classes}" style="--h: ${bar.height}%"></span>`;
+        }
+        return `<a class="${classes}" style="--h: ${bar.height}%"
+          href="https://www.strava.com/activities/${bar.activityId}"
+          target="_blank" rel="noopener noreferrer"
+          aria-label="Open Strava activity ${bar.activityId}"></a>`;
+      })
       .join("") + helpLink;
 }
 
@@ -214,6 +227,7 @@ export function updateTrainingLoadFromActivities(activities = []) {
   const last28DaysActivities = [];
   const last7DaysSufferScore = [];
   const last28DaysSufferScore = [];
+  let maxSufferScore = 0;
   const maxHeartRate = getMaxHeartRateValue();
   const dailyLoads = {};
   const debugEnabled = shouldDebugTrainingLoad();
@@ -287,6 +301,9 @@ export function updateTrainingLoadFromActivities(activities = []) {
       averageHeartrate,
       maxHeartRate
     );
+    if (trimpScore > maxSufferScore) {
+      maxSufferScore = trimpScore;
+    }
 
     if (debug) {
       if (averageHeartrate <= 0) {
@@ -370,6 +387,7 @@ export function updateTrainingLoadFromActivities(activities = []) {
   state.last28DaysActivities = last28DaysActivities;
   state.last7DaysSufferScore = last7DaysSufferScore;
   state.last28DaysSufferScore = last28DaysSufferScore;
+  state.maxSufferScore = maxSufferScore;
 
   const { atl, ctl } = computeAtlCtl(dailyLoads, now);
   state.trainingLoad = {

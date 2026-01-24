@@ -79,7 +79,7 @@ function handleLogoutCleanup() {
 async function init() {
   if (isLocalHost()) {
     // Clear persisted state while working locally so changes are easy to test.
-     clearLocalStateForDev();
+     //clearLocalStateForDev();
   }
 
   const consentGiven = await initCookieBanner();

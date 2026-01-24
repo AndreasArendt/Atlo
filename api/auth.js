@@ -72,36 +72,44 @@ export default async function handler(req, res) {
     }
 
     const token = await tokenResponse.json();
-            
+
+    const athlete = token?.athlete || {};
+    const userId = athlete?.id;
+
     // Query Heartrate zone data
     const zonesResponse = await fetch(
       "https://www.strava.com/api/v3/athlete/zones",
       { headers: { Authorization: `Bearer ${token.access_token}` } }
     );
 
-    var zones = [];
+    let heartRateZones = [];
     if (!zonesResponse.ok) {
       const msg = await zonesResponse.text();
       console.warn(`Zones fetch failed: ${msg}`);
     } else {
-      zones = await zonesResponse.json();
-      console.log("Zones data:", JSON.stringify(zones, null, 2));
+      const zones = await zonesResponse.json();
+      heartRateZones = Array.isArray(zones?.heart_rate?.zones)
+        ? zones.heart_rate.zones
+        : [];
     }
-
-    // create User Atlo profile
-    const user_id = token["athlete"]["id"];
-    
-    var user = Object();    
-    user.username = token["athlete"]["username"];
-    user.zones = zones["heart_rate"]["zones"];
-
-    await kv.set(`atlo:profile:${user_id}`, user);
 
     // Persist the user id on the session for reliable lookup on logout
     const sessionKey = `atlo:session:${state}`;
     const existingSession = await kv.get(sessionKey);
     const issuedAt = existingSession?.issuedAt ?? Date.now();
-    await kv.set(sessionKey, { issuedAt, userId: user_id }, { ex: SESSION_TTL_SECONDS });
+    await kv.set(
+      sessionKey,
+      { issuedAt, userId: userId ?? null },
+      { ex: SESSION_TTL_SECONDS }
+    );
+
+    if (userId) {
+      const user = {
+        username: athlete?.username ?? null,
+        zones: heartRateZones,
+      };
+      await kv.set(`atlo:profile:${userId}`, user);
+    }
 
     // Persist per-user token securely with a reasonable TTL (30 days)
     delete token["athlete"]; // Remove athlete info to reduce stored data
