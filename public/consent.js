@@ -1,6 +1,8 @@
 import { els } from "./dom.js";
 
 export const COOKIE_CONSENT_KEY = "atlo_cookie_consent_v1";
+const PRIVACY_POLICY_KEY = "atlo_privacy_policy_seen";
+const PRIVACY_POLICY_VERSION = "2026-01-24";
 
 function persistCookieChoice(value) {
   try {
@@ -47,10 +49,48 @@ export function initCookieBanner() {
   });
 }
 
+export function initPrivacyBanner() {
+  if (!els.privacyBanner) {
+    return;
+  }
+
+  let stored = null;
+  try {
+    stored = window.localStorage.getItem(PRIVACY_POLICY_KEY);
+  } catch {
+    stored = null;
+  }
+
+  if (stored === PRIVACY_POLICY_VERSION) {
+    els.privacyBanner.hidden = true;
+    return;
+  }
+
+  els.privacyBanner.hidden = false;
+
+  const privacyLink = els.privacyBanner.querySelector("a.ghost");
+  if (privacyLink) {
+    privacyLink.setAttribute("rel", "noreferrer");
+  }
+
+  const acceptHandler = () => {
+    try {
+      window.localStorage.setItem(PRIVACY_POLICY_KEY, PRIVACY_POLICY_VERSION);
+    } catch {
+      // ignore storage errors
+    }
+    els.privacyBanner.hidden = true;
+    els.privacyAccept?.removeEventListener("click", acceptHandler);
+  };
+
+  els.privacyAccept?.addEventListener("click", acceptHandler);
+}
+
 export function clearLocalStateForDev() {
   try {
     window.localStorage.clear();
   } catch {
     window.localStorage.removeItem(COOKIE_CONSENT_KEY);
+    window.localStorage.removeItem(PRIVACY_POLICY_KEY);
   }
 }

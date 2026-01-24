@@ -23,7 +23,7 @@ import {
   checkAuthStatus,
   updateAuthUI,
 } from "./auth.js";
-import { initCookieBanner /*, clearLocalStateForDev */ } from "./consent.js";
+import { initCookieBanner, initPrivacyBanner /*, clearLocalStateForDev */ } from "./consent.js";
 import { els } from "./dom.js";
 import { state } from "./state.js";
 
@@ -83,6 +83,7 @@ async function init() {
   }
 
   const consentGiven = await initCookieBanner();
+  initPrivacyBanner();
   if (!consentGiven) {
     return;
   }

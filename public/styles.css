@@ -1124,6 +1124,10 @@ li.muted {
   backdrop-filter: blur(8px);
 }
 
+.privacy-banner {
+  bottom: 120px;
+}
+
 .cookie-banner[hidden] {
   display: none;
 }
