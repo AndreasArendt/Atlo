@@ -66,6 +66,7 @@ function handleLogoutCleanup() {
   state.allActivities = [];
   state.expandedActivities.clear();
   state.currentPage = 1;
+  state.maxHeartRate = null;
   if (els.count) {
     els.count.textContent = "0";
   }

@@ -40,7 +40,7 @@ export default async function handler(req, res) {
   const params = new URLSearchParams({
     client_id: process.env.STRAVA_CLIENT_ID,
     response_type: "code",
-    redirect_uri: `${process.env.BASE_URL}/api/strava`,
+    redirect_uri: `${process.env.BASE_URL}/api/auth`,
     approval_prompt: "auto",
     scope: "read,activity:read,profile:read_all",
     state,

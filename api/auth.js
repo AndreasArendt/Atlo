@@ -72,25 +72,42 @@ export default async function handler(req, res) {
     }
 
     const token = await tokenResponse.json();
-    delete token["athlete"]; // Remove athlete info to reduce stored data
-
+            
+    // Query Heartrate zone data
     const zonesResponse = await fetch(
       "https://www.strava.com/api/v3/athlete/zones",
       { headers: { Authorization: `Bearer ${token.access_token}` } }
     );
+
+    var zones = [];
     if (!zonesResponse.ok) {
       const msg = await zonesResponse.text();
       console.warn(`Zones fetch failed: ${msg}`);
     } else {
-      const zones = await zonesResponse.json();
+      zones = await zonesResponse.json();
       console.log("Zones data:", JSON.stringify(zones, null, 2));
-
     }
 
+    // create User Atlo profile
+    const user_id = token["athlete"]["id"];
+    
+    var user = Object();    
+    user.username = token["athlete"]["username"];
+    user.zones = zones["heart_rate"]["zones"];
+
+    await kv.set(`atlo:profile:${user_id}`, user);
+
+    // Persist the user id on the session for reliable lookup on logout
+    const sessionKey = `atlo:session:${state}`;
+    const existingSession = await kv.get(sessionKey);
+    const issuedAt = existingSession?.issuedAt ?? Date.now();
+    await kv.set(sessionKey, { issuedAt, userId: user_id }, { ex: SESSION_TTL_SECONDS });
+
     // Persist per-user token securely with a reasonable TTL (30 days)
+    delete token["athlete"]; // Remove athlete info to reduce stored data
     const ttlSeconds = 60 * 60 * 24 * 30;
     await kv.set(`strava:token:${state}`, token, { ex: ttlSeconds });
-    await kv.expire(`atlo:session:${state}`, SESSION_TTL_SECONDS);
+    await kv.expire(sessionKey, SESSION_TTL_SECONDS);
 
     res.status(200).send(`
       <!doctype html>
@@ -173,7 +190,7 @@ export default async function handler(req, res) {
       </html>
     `);
   } catch (err) {
-    console.log("Error in /api/strava:", err);
+    console.log("Error in /api/auth:", err);
     res.status(500).send("Internal error");
   }
 }
