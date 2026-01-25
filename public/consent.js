@@ -2,7 +2,7 @@ import { els } from "./dom.js";
 
 export const COOKIE_CONSENT_KEY = "atlo_cookie_consent_v1";
 const PRIVACY_POLICY_KEY = "atlo_privacy_policy_seen";
-const PRIVACY_POLICY_VERSION = "2026-01-24";
+const PRIVACY_POLICY_VERSION = "2026-01-25";
 
 function persistCookieChoice(value) {
   try {
