@@ -1,6 +1,6 @@
 # Privacy Policy and Data Usage Declaration
 
-**Last updated:** 24.01.2026
+**Last updated:** 25.01.2026
 
 ## 1. Introduction
 This website (“the Application”) integrates with the Strava API to provide authenticated access to Strava services. The Application is designed according to the principles of data minimization, purpose limitation, and privacy by design.
@@ -15,6 +15,7 @@ Upon authentication with Strava, the Application stores only the following infor
 - Strava athlete ID – used to associate a profile
 - Strava username (if present) – stored as part of the Atlo profile
 - Heart-rate zones – used to determine max heart rate for training load calculations
+- Resting Heartrate – if user enters this manually
 
 All tokens are stored with a time-to-live (TTL) of 30 days and are automatically invalidated and removed after expiration, the profile is deleted on "logout".
 
