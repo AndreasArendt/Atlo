@@ -104,11 +104,17 @@ export default async function handler(req, res) {
     );
 
     if (userId) {
+      const profileKey = `atlo:profile:${userId}`;
+      const existingProfile = (await kv.get(profileKey)) || {};
+      const mergedZones = heartRateZones.length
+        ? heartRateZones
+        : existingProfile?.zones || [];
       const user = {
-        username: athlete?.username ?? null,
-        zones: heartRateZones,
+        username: athlete?.username ?? existingProfile?.username ?? null,
+        zones: mergedZones,
+        restingHeartRate: existingProfile?.restingHeartRate ?? null,
       };
-      await kv.set(`atlo:profile:${userId}`, user);
+      await kv.set(profileKey, user);
     }
 
     // Persist per-user token securely with a reasonable TTL (30 days)

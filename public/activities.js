@@ -329,7 +329,9 @@ export async function loadActivities() {
     );
     await updateActivityDisplay();
 
-    updateAuthUI(true);
+    if (state.isAuthenticated) {
+      updateAuthUI(true);
+    }
   } catch (err) {
     console.error(err);
     if (AUTH_ERROR_PATTERN.test(err?.message || "")) {
@@ -364,4 +366,3 @@ export {
   bindPaginationControls,
   bindListToggle,
 };
-

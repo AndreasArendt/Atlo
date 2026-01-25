@@ -20,6 +20,7 @@ export const state = {
   last28DaysSufferScore: [],
   maxSufferScore: 0,
   maxHeartRate: null,
+  restingHeartRate: null,
   trainingLoadActivities: [],
   trainingLoad: {
     atl: 0,

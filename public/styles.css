@@ -84,15 +84,98 @@ h1 {
   align-self: flex-start;
 }
 
+.btn-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(17, 60, 76, 0.18);
+  background: #fff;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 120ms ease;
+}
+
+.profile-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  z-index: 2;
+}
+
+.profile-menu[hidden] {
+  display: none;
+}
+
+.profile-menu::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 10px;
+}
+
+.profile-logout {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 3;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid rgba(17, 60, 76, 0.18);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease, transform 140ms ease;
+  white-space: nowrap;
+}
+
+.profile-menu:hover .profile-logout,
+.profile-menu:focus-within .profile-logout {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.profile-logout:hover {
+  border-color: rgba(17, 60, 76, 0.35);
+}
+
+.btn-profile i {
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.btn-profile:hover {
+  border-color: rgba(17, 60, 76, 0.35);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+}
+
+.btn-profile:active {
+  transform: translateY(0);
+}
+
 button {
-  background: linear-gradient(135deg, var(--accent), var(--accent-2));
-  color: #fff;
-  border: none;
+  background: #fff;
+  color: var(--text);
+  border: 1px solid rgba(17, 60, 76, 0.18);
   border-radius: 999px;
   padding: 12px 20px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 120ms ease;
 }
 button:hover { transform: translateY(-1px); }
 button:active { transform: translateY(0); }
@@ -115,11 +198,16 @@ button:active { transform: translateY(0); }
 
 .btn-strava.need-auth {
   animation: authPulse 1.8s ease-in-out infinite;
-  box-shadow: 0 0 0 0 rgba(56, 172, 189, 0.55);
+  box-shadow: 0 0 0 0 rgba(254, 131, 79, 0.6);
+  filter: drop-shadow(0 0 12px rgba(254, 131, 79, 0.55));
 }
 
 .btn-strava.cookie-consent-given {
   display: block;
+}
+
+.btn-strava[hidden] {
+  display: none;
 }
 
 .btn-logout {
@@ -876,9 +964,9 @@ button:active { transform: translateY(0); }
 }
 
 .load-chip.is-balanced {
-  border-color: rgba(17, 60, 76, 0.35);
-  color: #113c4c;
-  background: rgba(17, 60, 76, 0.12);
+  border-color: rgba(34, 160, 80, 0.35);
+  color: #1f5f40;
+  background: rgba(34, 160, 80, 0.12);
 }
 
 .load-chip.is-high {

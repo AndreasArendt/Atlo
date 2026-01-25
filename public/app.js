@@ -117,8 +117,12 @@ async function init() {
   });
 
   if (!hasSession) {
+    updateAuthUI(false);
     return;
   }
+
+  const authed = await checkAuthStatus();
+  updateAuthUI(authed);
 
   const mapReady = await initMapInstance();
   if (!mapReady) {
@@ -126,10 +130,6 @@ async function init() {
   }
 
   await loadActivities();
-
-  checkAuthStatus().then((authed) => {
-    updateAuthUI(authed);
-  });
 }
 
 init().catch((err) => {

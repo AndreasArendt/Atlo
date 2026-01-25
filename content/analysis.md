@@ -6,7 +6,7 @@ How it is computed:
 - **Step 1: Inputs**
   - `moving_time` and `average_heartrate` per activity.
   - `max_heartrate`, taken from your Strava profile.
-  - `resting_heartrate` set to `60` as default currently.
+  - `resting_heartrate`, from your profile (defaults to `60`).
 - **Step 2: TRIMP per activity**
   - `HR_ratio = (average_heartrate - resting_heartrate) / (max_heartrate - resting_heartrate)`
   - `TRIMP = duration_min * HR_ratio * exp(b * HR_ratio)`
@@ -22,6 +22,6 @@ How it is computed:
 The scores are defined as followed:
 |score | load |
 |---|---|
-|0.8–1.2| balanced|
-| >1.2 | elevated injury / overtraining risk|
+|0.8–1.3| balanced|
+| >1.3 | elevated injury / overtraining risk|
 | <0.8 | likely under-stimulating|

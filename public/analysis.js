@@ -2,7 +2,7 @@ import { els } from "./dom.js";
 import { state } from "./state.js";
 
 const DEFAULT_MAX_HEART_RATE = 190;
-const RESTING_HEART_RATE = 60;
+const DEFAULT_RESTING_HEART_RATE = 60;
 const CTL_WINDOW_DAYS = 42;
 const ATL_WINDOW_DAYS = 7;
 const DEBUG_STORAGE_KEY = "atlo.debugTrainingLoad";
@@ -20,7 +20,7 @@ function getLoadStatus(ratio, hasData) {
   const numeric = Number(ratio);
   if (!Number.isFinite(numeric)) return { label: "—", tone: "neutral" };
   if (numeric < 0.8) return { label: "Low", tone: "low" };
-  if (numeric <= 1.2) return { label: "Balanced", tone: "balanced" };
+  if (numeric <= 1.3) return { label: "Balanced", tone: "balanced" };
   return { label: "High", tone: "high" };
 }
 
@@ -34,6 +34,26 @@ function getMaxHeartRateValue() {
     return numeric;
   }
   return DEFAULT_MAX_HEART_RATE;
+}
+
+function getRestingHeartRateValue() {
+  const numeric = Number(state.restingHeartRate);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric;
+  }
+  return DEFAULT_RESTING_HEART_RATE;
+}
+
+function formatRestingHeartRate(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return "RHR —";
+  return `RHR ${Math.round(numeric)} bpm`;
+}
+
+function updateProfileSummary() {
+  const restingEl = document.querySelector('[data-metric="resting-hr"]');
+  if (!restingEl) return;
+  restingEl.textContent = formatRestingHeartRate(state.restingHeartRate);
 }
 
 function shouldDebugTrainingLoad() {
@@ -53,7 +73,13 @@ function shouldDebugTrainingLoad() {
 }
 
 export async function ensureMaxHeartRate() {
-  if (Number.isFinite(Number(state.maxHeartRate)) && state.maxHeartRate > 0) {
+  const hasMax =
+    Number.isFinite(Number(state.maxHeartRate)) && state.maxHeartRate > 0;
+  const hasResting =
+    Number.isFinite(Number(state.restingHeartRate)) &&
+    state.restingHeartRate > 0;
+
+  if (hasMax && hasResting) {
     return state.maxHeartRate;
   }
 
@@ -66,8 +92,15 @@ export async function ensureMaxHeartRate() {
     const maxHeartRate = Number(data?.maxHeartRate);
     if (Number.isFinite(maxHeartRate) && maxHeartRate > 0) {
       state.maxHeartRate = maxHeartRate;
-      return maxHeartRate;
     }
+    const restingHeartRate = Number(data?.restingHeartRate);
+    if (Number.isFinite(restingHeartRate) && restingHeartRate > 0 && restingHeartRate < state.maxHeartRate) {
+      state.restingHeartRate = restingHeartRate;
+    } else {
+      state.restingHeartRate = null;
+    }
+    updateProfileSummary();
+    return Number.isFinite(state.maxHeartRate) ? state.maxHeartRate : null;
   } catch (err) {
     console.warn("Profile load failed:", err);
   }
@@ -129,6 +162,7 @@ function updateAnalysisDisplay() {
   const loadStatusEl = document.querySelector(
     '[data-metric="training-load-status"]'
   );
+  updateProfileSummary();
   const sparklineEl = document.querySelector(".analysis-sparkline");
 
   const atl = Number(state.trainingLoad?.atl) || 0;
@@ -190,11 +224,12 @@ function computeTrimp(movingTimeSeconds, averageHeartrate, maxHeartRate) {
   if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) return 0;
   if (!Number.isFinite(averageHeartrate) || averageHeartrate <= 0) return 0;
   if (!Number.isFinite(maxHeartRate) || maxHeartRate <= 0) return 0;
-  if (maxHeartRate <= RESTING_HEART_RATE) return 0;
+  const restingHeartRate = getRestingHeartRateValue();
+  if (maxHeartRate <= restingHeartRate) return 0;
 
   const hrRatioRaw =
-    (averageHeartrate - RESTING_HEART_RATE) /
-    (maxHeartRate - RESTING_HEART_RATE);
+    (averageHeartrate - restingHeartRate) /
+    (maxHeartRate - restingHeartRate);
   const hrRatio = Math.min(Math.max(hrRatioRaw, 0), 1.2);
   const b = 1.92;
   return durationMinutes * hrRatio * Math.exp(b * hrRatio);
