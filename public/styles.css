@@ -734,6 +734,17 @@ button:active { transform: translateY(0); }
   font-weight: 600;
 }
 
+.analysis-value-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 6px;
+}
+
+.analysis-value-row .analysis-value {
+  margin: 0;
+}
+
 .analysis-note {
   margin: 6px 0 0;
   color: var(--muted);
@@ -847,6 +858,33 @@ button:active { transform: translateY(0); }
   color: var(--text);
   font-weight: 600;
   background: rgba(255, 255, 255, 0.9);
+}
+
+.load-chip {
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 8px;
+  border-color: rgba(15, 23, 42, 0.14);
+  color: var(--muted);
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.load-chip.is-low {
+  border-color: rgba(34, 108, 74, 0.35);
+  color: #1f5f40;
+  background: rgba(34, 108, 74, 0.12);
+}
+
+.load-chip.is-balanced {
+  border-color: rgba(17, 60, 76, 0.35);
+  color: #113c4c;
+  background: rgba(17, 60, 76, 0.12);
+}
+
+.load-chip.is-high {
+  border-color: rgba(201, 95, 32, 0.35);
+  color: #8b3f17;
+  background: rgba(201, 95, 32, 0.12);
 }
 
 .pagination-controls.display-summary {

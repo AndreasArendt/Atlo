@@ -7,7 +7,12 @@ export function activityItemTemplate({
   movingTime,
   elevationGain,
   hasMapdata,
+  load = 0,
 }) {
+  const loadValue = Number(load);
+  const loadStyle = Number.isFinite(loadValue)
+    ? ` style="--load:${loadValue.toFixed(3)}"`
+    : "";
   const mapButton = hasMapdata
     ? `
             <button
@@ -23,7 +28,7 @@ export function activityItemTemplate({
     : "";
 
   return `
-      <li class="activity-card">
+      <li class="activity-card"${loadStyle}>
         <div class="activity-header">
           <div class="activity-title">
             <p class="activity-name">${name}</p>

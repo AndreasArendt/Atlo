@@ -15,6 +15,15 @@ function formatSufferRatio(value, hasData = true) {
   return numeric.toFixed(2);
 }
 
+function getLoadStatus(ratio, hasData) {
+  if (!hasData) return { label: "—", tone: "neutral" };
+  const numeric = Number(ratio);
+  if (!Number.isFinite(numeric)) return { label: "—", tone: "neutral" };
+  if (numeric < 0.8) return { label: "Low", tone: "low" };
+  if (numeric <= 1.2) return { label: "Balanced", tone: "balanced" };
+  return { label: "High", tone: "high" };
+}
+
 function getTrainingLoadReferenceTime() {
   return Date.now();
 }
@@ -117,6 +126,9 @@ function updateAnalysisDisplay() {
     '[data-metric="training-load"]'
   );
   const loadShortEl = document.querySelector('[data-metric="load-short"]');
+  const loadStatusEl = document.querySelector(
+    '[data-metric="training-load-status"]'
+  );
   const sparklineEl = document.querySelector(".analysis-sparkline");
 
   const atl = Number(state.trainingLoad?.atl) || 0;
@@ -130,6 +142,15 @@ function updateAnalysisDisplay() {
 
   if (loadShortEl) {
     loadShortEl.textContent = formatSufferRatio(ratio, hasRatioData);
+  }
+
+  if (loadStatusEl) {
+    const status = getLoadStatus(ratio, hasRatioData);
+    loadStatusEl.textContent = status.label;
+    loadStatusEl.classList.remove("is-low", "is-balanced", "is-high");
+    if (status.tone === "low") loadStatusEl.classList.add("is-low");
+    if (status.tone === "balanced") loadStatusEl.classList.add("is-balanced");
+    if (status.tone === "high") loadStatusEl.classList.add("is-high");
   }
 
   if (!sparklineEl) return;
@@ -177,6 +198,18 @@ function computeTrimp(movingTimeSeconds, averageHeartrate, maxHeartRate) {
   const hrRatio = Math.min(Math.max(hrRatioRaw, 0), 1.2);
   const b = 1.92;
   return durationMinutes * hrRatio * Math.exp(b * hrRatio);
+}
+
+export function computeActivityLoad(activity, maxHeartRateOverride) {
+  const movingTime =
+    Number(activity?.moving_time ?? activity?.movingTime) || 0;
+  const averageHeartrate = Number(activity?.average_heartrate) || 0;
+  const override = Number(maxHeartRateOverride);
+  const resolvedMax =
+    Number.isFinite(override) && override > 0
+      ? override
+      : getMaxHeartRateValue();
+  return computeTrimp(movingTime, averageHeartrate, resolvedMax);
 }
 
 function computeAtlCtl(dailyLoads, referenceTime) {
