@@ -72,6 +72,64 @@ export default async function handler(req, res) {
     }
 
     const token = await tokenResponse.json();
+<<<<<<< Updated upstream:api/strava.js
+=======
+
+    const athlete = token?.athlete || {};
+    const userId = athlete?.id;
+
+    // Query Heartrate zone data
+    const zonesResponse = await fetch(
+      "https://www.strava.com/api/v3/athlete/zones",
+      { headers: { Authorization: `Bearer ${token.access_token}` } }
+    );
+
+    let heartRateZones = [];
+    if (!zonesResponse.ok) {
+      const msg = await zonesResponse.text();
+      console.warn(`Zones fetch failed: ${msg}`);
+    } else {
+      const zones = await zonesResponse.json();
+      heartRateZones = Array.isArray(zones?.heart_rate?.zones)
+        ? zones.heart_rate.zones
+        : [];
+    }
+
+    // Persist the user id on the session for reliable lookup on logout
+    const sessionKey = `atlo:session:${state}`;
+    const existingSession = await kv.get(sessionKey);
+    const issuedAt = existingSession?.issuedAt ?? Date.now();
+    await kv.set(
+      sessionKey,
+      { issuedAt, userId: userId ?? null },
+      { ex: SESSION_TTL_SECONDS }
+    );
+
+    if (userId) {
+      const profileKey = `atlo:profile:${userId}`;
+      const existingProfile = (await kv.get(profileKey)) || {};
+      const existingMax = Number(existingProfile?.maxHeartRate);
+      const maxFromZones = resolveMaxHeartRate(heartRateZones);
+      const maxFromStoredZones = resolveMaxHeartRate(existingProfile?.zones);
+      const maxHeartRate =
+        Number.isFinite(existingMax) && existingMax > 0
+          ? Math.round(existingMax)
+          : Number.isFinite(maxFromZones) && maxFromZones > 0
+          ? Math.round(maxFromZones)
+          : Number.isFinite(maxFromStoredZones) && maxFromStoredZones > 0
+          ? Math.round(maxFromStoredZones)
+          : null;
+      const user = {
+        username: existingProfile?.username ?? athlete?.username ?? null,
+        maxHeartRate,
+        restingHeartRate: existingProfile?.restingHeartRate ?? null,
+        yearlyGoals: existingProfile?.yearlyGoals ?? [],
+      };
+      await kv.set(profileKey, user);
+    }
+
+    // Persist per-user token securely with a reasonable TTL (30 days)
+>>>>>>> Stashed changes:api/auth.js
     delete token["athlete"]; // Remove athlete info to reduce stored data
     
     // Persist per-user token securely with a reasonable TTL (30 days)

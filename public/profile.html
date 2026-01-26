@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlo · Profile</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/profile.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300..800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+  </head>
+  <body class="profile-page">
+    <div class="profile-wrap">
+      <header class="profile-header">
+        <a class="profile-back" href="/">
+          <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+          <span>Back</span>
+        </a>
+        <div class="profile-title">
+          <p class="eyebrow">Settings</p>
+          <h1>Profile</h1>
+        </div>
+      </header>
+
+      <main class="profile-card" id="profile-form-wrap">
+        <form id="profile-form">
+          <div class="profile-grid">
+            <div class="profile-field">
+              <label>Athlete</label>
+              <p id="profile-username" class="profile-value">—</p>
+            </div>
+            <div class="profile-field">
+              <label>Max HR</label>
+              <p id="profile-max-hr" class="profile-value">—</p>
+            </div>
+            <div class="profile-field">
+              <label for="resting-hr">Resting HR</label>
+              <input
+                id="resting-hr"
+                name="resting-hr"
+                type="number"
+                min="30"
+                max="120"
+                step="1"
+                placeholder="e.g. 58"
+                inputmode="numeric"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+          <div class="profile-goals">
+            <div class="profile-goals-header">
+              <div>
+                <p class="profile-goals-title">Yearly goals</p>
+                <p class="profile-help">Set a distance target per sport (km).</p>
+              </div>
+              <button type="button" class="profile-goal-add" id="profile-add-goal">
+                Add goal
+              </button>
+            </div>
+            <div class="profile-goal-list" id="profile-goal-list"></div>
+          </div>
+          <div class="profile-actions">
+            <button type="submit">Save profile</button>
+            <span id="profile-status" class="profile-status">—</span>
+          </div>
+        </form>
+      </main>
+
+      <section class="profile-card profile-danger" id="profile-danger" hidden>
+        <h2>Delete your data</h2>
+        <p>This permanently removes your Atlo profile data and logs you out.</p>
+        <div class="profile-actions">
+          <button type="button" class="profile-danger-button" id="profile-delete">
+            Delete all data
+          </button>
+          <span id="profile-delete-status" class="profile-status"></span>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="/profile.js"></script>
+  </body>
+</html>

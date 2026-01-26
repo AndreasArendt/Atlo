@@ -558,8 +558,63 @@ export async function loadActivities() {
       before: beforeParam,
     });
 
+<<<<<<< Updated upstream
     state.allActivities = await api(`/api/activities?${params.toString()}`);
     addActivityTypeFilterButtons(state.allActivities);
+=======
+    const trainingBefore = new Date();
+    const trainingAfter = new Date(trainingBefore);
+    trainingAfter.setDate(
+      trainingAfter.getDate() - TRAINING_LOAD_LOOKBACK_DAYS
+    );
+    const trainingParams = new URLSearchParams({
+      after: trainingAfter.toISOString(),
+      before: trainingBefore.toISOString(),
+    });
+
+    const now = new Date();
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const shouldFetchYearGoals =
+      Array.isArray(state.yearlyGoals) &&
+      state.yearlyGoals.length > 0 &&
+      state.yearlyGoalYear !== now.getFullYear();
+    const yearlyParams = new URLSearchParams({
+      after: yearStart.toISOString(),
+      before: now.toISOString(),
+    });
+
+    const requests = [
+      api(`/api/activities?${params.toString()}`),
+      api(`/api/activities?${trainingParams.toString()}`),
+    ];
+    if (shouldFetchYearGoals) {
+      requests.push(api(`/api/activities?${yearlyParams.toString()}`));
+    }
+
+    const [listResult, trainingResult, yearlyResult] =
+      await Promise.allSettled(requests);
+
+    if (listResult.status !== "fulfilled") {
+      throw listResult.reason;
+    }
+
+    state.allActivities = listResult.value;
+    state.trainingLoadActivities =
+      trainingResult.status === "fulfilled"
+        ? trainingResult.value
+        : listResult.value;
+    if (shouldFetchYearGoals && yearlyResult?.status === "fulfilled") {
+      state.yearlyGoalActivities = yearlyResult.value;
+      state.yearlyGoalYear = now.getFullYear();
+    }
+
+    updateTrainingLoadFromActivities(state.trainingLoadActivities);
+    addActivityTypeFilterButtons(state.allActivities, () =>
+      updateActivityDisplay().catch((err) =>
+        console.error("Failed to update activities:", err)
+      )
+    );
+>>>>>>> Stashed changes
     await updateActivityDisplay();
 
     updateAuthUI(true);
