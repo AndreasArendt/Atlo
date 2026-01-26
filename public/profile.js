@@ -62,12 +62,12 @@ async function loadProfile() {
     fillProfile(data);
     showForm();
     setStatus("", "muted");
-    setDeleteStatus("—", "muted");
+    setDeleteStatus("", "muted");
   } catch (err) {
     console.error("Profile load failed:", err);
     showLogin();
     setStatus("Connect Strava to edit your profile.", "error");
-    setDeleteStatus("—", "muted");
+    setDeleteStatus("", "muted");
   }
 }
 
