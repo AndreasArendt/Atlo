@@ -8,7 +8,7 @@ We store only minimal data needed to operate the app:
 - Session ID and API rate-limit state
 - Strava access + refresh tokens (TTL 30 days)
 - Strava athlete ID and username (if present)
-- Heart-rate zones (used to compute max HR for training load)
+- Strava maximum heartrate (extracted from zones)
 
 We do **not** store activity history, GPS tracks, or HR time-series data.
 

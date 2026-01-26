@@ -8,12 +8,18 @@ import {
 
 export const config = { runtime: "nodejs" };
 
-function resolveMaxHeartRate(zones = []) {
+function resolveMaxHeartRate(profile = {}) {
+  const stored = Number(profile?.maxHeartRate);
+  if (Number.isFinite(stored) && stored > 0) {
+    return Math.round(stored);
+  }
+
+  const zones = profile?.zones;
   if (!Array.isArray(zones) || zones.length === 0) return null;
 
   const lastMax = Number(zones[zones.length - 1]?.max);
   if (Number.isFinite(lastMax) && lastMax > 0) {
-    return lastMax;
+    return Math.round(lastMax);
   }
 
   const candidates = zones
@@ -21,7 +27,7 @@ function resolveMaxHeartRate(zones = []) {
     .filter((value) => Number.isFinite(value) && value > 0);
 
   if (!candidates.length) return null;
-  return Math.max(...candidates);
+  return Math.round(Math.max(...candidates));
 }
 
 async function readJsonBody(req) {
@@ -75,6 +81,7 @@ export default async function handler(req, res) {
 
     const profileKey = `atlo:profile:${userId}`;
     const profile = (await kv.get(profileKey)) || {};
+    const maxHeartRate = resolveMaxHeartRate(profile);
 
     if (req.method === "DELETE") {
       await kv.del(profileKey);
@@ -95,10 +102,12 @@ export default async function handler(req, res) {
       const nextProfile = {
         ...profile,
         restingHeartRate,
+        maxHeartRate,
       };
+      if ("zones" in nextProfile) {
+        delete nextProfile.zones;
+      }
       await kv.set(profileKey, nextProfile);
-
-      const maxHeartRate = resolveMaxHeartRate(nextProfile?.zones);
       return res.status(200).json({
         maxHeartRate,
         restingHeartRate,
@@ -106,7 +115,6 @@ export default async function handler(req, res) {
       });
     }
 
-    const maxHeartRate = resolveMaxHeartRate(profile?.zones);
     return res.status(200).json({
       maxHeartRate,
       restingHeartRate: profile?.restingHeartRate ?? null,

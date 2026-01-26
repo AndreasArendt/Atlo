@@ -15,6 +15,17 @@ const LOGO_DATA_URI = (() => {
   }
 })();
 
+const resolveMaxHeartRate = (zones = []) => {
+  if (!Array.isArray(zones) || zones.length === 0) return null;
+  const lastMax = Number(zones[zones.length - 1]?.max);
+  if (Number.isFinite(lastMax) && lastMax > 0) return lastMax;
+  const candidates = zones
+    .map((zone) => Number(zone?.max))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (!candidates.length) return null;
+  return Math.max(...candidates);
+};
+
 export default async function handler(req, res) {
   try {
     // Fail fast if required env vars are missing to avoid generic 500s
@@ -106,12 +117,20 @@ export default async function handler(req, res) {
     if (userId) {
       const profileKey = `atlo:profile:${userId}`;
       const existingProfile = (await kv.get(profileKey)) || {};
-      const mergedZones = heartRateZones.length
-        ? heartRateZones
-        : existingProfile?.zones || [];
+      const existingMax = Number(existingProfile?.maxHeartRate);
+      const maxFromZones = resolveMaxHeartRate(heartRateZones);
+      const maxFromStoredZones = resolveMaxHeartRate(existingProfile?.zones);
+      const maxHeartRate =
+        Number.isFinite(existingMax) && existingMax > 0
+          ? Math.round(existingMax)
+          : Number.isFinite(maxFromZones) && maxFromZones > 0
+          ? Math.round(maxFromZones)
+          : Number.isFinite(maxFromStoredZones) && maxFromStoredZones > 0
+          ? Math.round(maxFromStoredZones)
+          : null;
       const user = {
-        username: athlete?.username ?? existingProfile?.username ?? null,
-        zones: mergedZones,
+        username: existingProfile?.username ?? athlete?.username ?? null,
+        maxHeartRate,
         restingHeartRate: existingProfile?.restingHeartRate ?? null,
       };
       await kv.set(profileKey, user);
