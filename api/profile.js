@@ -30,30 +30,6 @@ function resolveMaxHeartRate(profile = {}) {
   return Math.round(Math.max(...candidates));
 }
 
-const MAX_YEARLY_GOALS = 6;
-
-function sanitizeYearlyGoals(goals) {
-  if (!Array.isArray(goals)) return [];
-  const cleaned = [];
-  const seen = new Set();
-  for (const goal of goals) {
-    const sport = typeof goal?.sport === "string" ? goal.sport.trim() : "";
-    const distance = Number(goal?.distanceKm ?? goal?.distance);
-    if (!sport || !Number.isFinite(distance) || distance <= 0) {
-      continue;
-    }
-    const key = sport.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    cleaned.push({
-      sport,
-      distanceKm: Math.round(distance * 10) / 10,
-    });
-    if (cleaned.length >= MAX_YEARLY_GOALS) break;
-  }
-  return cleaned;
-}
-
 async function readJsonBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
   if (typeof req.body === "string") {
@@ -122,16 +98,11 @@ export default async function handler(req, res) {
       const resting = Number(body?.restingHeartRate);
       const restingHeartRate =
         Number.isFinite(resting) && resting > 0 ? Math.round(resting) : null;
-      const yearlyGoals =
-        body && "yearlyGoals" in body
-          ? sanitizeYearlyGoals(body?.yearlyGoals)
-          : profile?.yearlyGoals || [];
 
       const nextProfile = {
         ...profile,
         restingHeartRate,
         maxHeartRate,
-        yearlyGoals,
       };
       if ("zones" in nextProfile) {
         delete nextProfile.zones;
@@ -141,7 +112,6 @@ export default async function handler(req, res) {
         maxHeartRate,
         restingHeartRate,
         username: nextProfile?.username ?? null,
-        yearlyGoals: nextProfile?.yearlyGoals || [],
       });
     }
 
@@ -149,7 +119,6 @@ export default async function handler(req, res) {
       maxHeartRate,
       restingHeartRate: profile?.restingHeartRate ?? null,
       username: profile?.username ?? null,
-      yearlyGoals: profile?.yearlyGoals || [],
     });
   } catch (err) {
     console.error("Profile read error:", err);

@@ -1,5 +1,7 @@
 import { activityItemTemplate } from "./templates/activityItemTemplate.js";
 import { activitySummaryTemplate } from "./templates/activitySummaryTemplate.js";
+import { computeActivityLoad } from "./analysis.js";
+import { state } from "./state.js";
 
 const spinnerEl = document.getElementById("status-spinner");
 const messageEl = document.getElementById("status-message");
@@ -274,9 +276,13 @@ export function renderList(activities, listEl) {
     return;
   }
 
+  const loads = activities.map((activity) => computeActivityLoad(activity));
+  const maxLoad = Math.max(Number(state.maxSufferScore) || 0, ...loads, 0);
+
   listEl.innerHTML = activities
-    .map((a) =>
-      activityItemTemplate({
+    .map((a, idx) => {
+      const loadRatio = maxLoad ? Math.min(loads[idx] / maxLoad, 1) : 0;
+      return activityItemTemplate({
         id: escapeHtml(a.id?.toString() || ""),
         name: escapeHtml(a.name || "Untitled activity"),
         type: escapeHtml(a.type || "-").split(/(?=[A-Z])/).join(" "),
@@ -285,7 +291,8 @@ export function renderList(activities, listEl) {
         movingTime: formatDuration(a.movingTime),
         elevationGain: formatElevation(a.elevationGain),
         hasMapdata: Boolean(a.hasMapdata),
-      })
-    )
+        load: loadRatio,
+      });
+    })
     .join("");
 }

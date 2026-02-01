@@ -1,5 +1,5 @@
+import { els } from "./dom.js";
 import { state } from "./state.js";
-import { getSportMeta, normalizeSport } from "./goals.js";
 
 const DEFAULT_MAX_HEART_RATE = 190;
 const DEFAULT_RESTING_HEART_RATE = 60;
@@ -56,118 +56,6 @@ function updateProfileSummary() {
   restingEl.textContent = formatRestingHeartRate(state.restingHeartRate);
 }
 
-function formatDistanceKm(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric <= 0) return "0 km";
-  const rounded = numeric < 10 ? numeric.toFixed(1) : Math.round(numeric);
-  return `${rounded} km`;
-}
-
-function sanitizeYearlyGoals(goals) {
-  if (!Array.isArray(goals)) return [];
-  const cleaned = [];
-  const seen = new Set();
-  for (const goal of goals) {
-    const meta = getSportMeta(goal?.sport);
-    const distance = Number(goal?.distanceKm ?? goal?.distance);
-    if (!meta?.id || !Number.isFinite(distance) || distance <= 0) {
-      continue;
-    }
-    const key = meta.id.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    cleaned.push({
-      sport: meta.id,
-      label: meta.label,
-      icon: meta.icon,
-      distanceKm: Math.round(distance * 10) / 10,
-    });
-  }
-  return cleaned;
-}
-
-function getYearlyActivities(referenceTime) {
-  const year = new Date(referenceTime).getFullYear();
-  if (state.yearlyGoalYear === year && Array.isArray(state.yearlyGoalActivities)) {
-    return state.yearlyGoalActivities;
-  }
-  return state.allActivities || [];
-}
-
-function updateYearlyGoalDisplay() {
-  const carousel = document.getElementById("goal-carousel");
-  if (!carousel) return;
-  const metaEl = document.querySelector("[data-goal-meta]");
-  const goals = sanitizeYearlyGoals(state.yearlyGoals);
-  const referenceTime = Date.now();
-  const yearStart = new Date(new Date(referenceTime).getFullYear(), 0, 1).getTime();
-  const activities = getYearlyActivities(referenceTime);
-
-  if (!goals.length) {
-    carousel.innerHTML = `
-      <div class="goal-slide is-empty">
-        <div class="goal-heading">
-          <span class="goal-icon">
-            <i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>
-          </span>
-          <span class="goal-sport">No goals yet</span>
-        </div>
-        <p class="analysis-note">Set a target to track progress.</p>
-      </div>
-    `;
-    if (metaEl) metaEl.textContent = "Distance";
-    return;
-  }
-
-  const totalsBySport = new Map();
-  for (const activity of activities) {
-    const dateValue = activity?.date;
-    const activityTime =
-      typeof dateValue === "number"
-        ? dateValue
-        : dateValue instanceof Date
-        ? dateValue.getTime()
-        : Date.parse(dateValue);
-    if (
-      Number.isNaN(activityTime) ||
-      activityTime < yearStart ||
-      activityTime > referenceTime
-    )
-      continue;
-    const sport = normalizeSport(activity?.type);
-    const distanceKm = (Number(activity?.distance) || 0) / 1000;
-    if (distanceKm <= 0) continue;
-    totalsBySport.set(sport, (totalsBySport.get(sport) || 0) + distanceKm);
-  }
-
-  carousel.innerHTML = goals
-    .map((goal) => {
-      const progressKm = totalsBySport.get(goal.sport) || 0;
-      const targetKm = Number(goal.distanceKm) || 0;
-      const percent = targetKm > 0 ? Math.min((progressKm / targetKm) * 100, 100) : 0;
-      return `
-        <div class="goal-slide">
-          <div class="goal-heading">
-            <span class="goal-icon">
-              <i class="fa-solid ${goal.icon}" aria-hidden="true"></i>
-            </span>
-            <span class="goal-sport">${goal.label}</span>
-          </div>
-          <p class="analysis-value">${formatDistanceKm(progressKm)}</p>
-          <p class="goal-sub">of ${formatDistanceKm(targetKm)} this year</p>
-          <div class="progress-track" aria-hidden="true">
-            <div class="progress-fill" style="width: ${percent.toFixed(1)}%"></div>
-          </div>
-        </div>
-      `;
-    })
-    .join("");
-
-  if (metaEl) {
-    metaEl.textContent = goals.length === 1 ? goals[0].label : `${goals.length} goals`;
-  }
-}
-
 function shouldDebugTrainingLoad() {
   if (typeof window === "undefined") return false;
   try {
@@ -191,7 +79,7 @@ export async function ensureMaxHeartRate() {
     Number.isFinite(Number(state.restingHeartRate)) &&
     state.restingHeartRate > 0;
 
-  if (state.profileLoaded && hasMax && hasResting) {
+  if (hasMax && hasResting) {
     return state.maxHeartRate;
   }
 
@@ -211,10 +99,6 @@ export async function ensureMaxHeartRate() {
     } else {
       state.restingHeartRate = null;
     }
-    state.yearlyGoals = sanitizeYearlyGoals(data?.yearlyGoals);
-    state.yearlyGoalYear = null;
-    state.yearlyGoalActivities = [];
-    state.profileLoaded = true;
     updateProfileSummary();
     return Number.isFinite(state.maxHeartRate) ? state.maxHeartRate : null;
   } catch (err) {
@@ -279,7 +163,6 @@ function updateAnalysisDisplay() {
     '[data-metric="training-load-status"]'
   );
   updateProfileSummary();
-  updateYearlyGoalDisplay();
   const sparklineEl = document.querySelector(".analysis-sparkline");
 
   const atl = Number(state.trainingLoad?.atl) || 0;

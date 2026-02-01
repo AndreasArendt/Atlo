@@ -14,8 +14,9 @@ export default async function handler(req, res) {
     const state = getSessionFromRequest(req);
     if (!state) return res.status(401).send("Missing session state.");
 
+    const sessionKey = `atlo:session:${state}`;
     await kv.del(`strava:token:${state}`);
-    await kv.del(`atlo:session:${state}`);
+    await kv.del(sessionKey);
 
     const expiredCookie = createCookie(SESSION_COOKIE_NAME, "", { maxAge: 0 });
     res.setHeader("Set-Cookie", expiredCookie);

@@ -26,6 +26,13 @@
         <h1>Explore your movement.</h1>
       </div>
       <div class="btn-group">
+        <div class="profile-menu" id="profile-menu" hidden>
+          <a class="btn-profile" href="/profile.html" aria-label="Open profile settings">
+            <i class="fa-regular fa-user" aria-hidden="true"></i>
+            <span>Profile</span>
+          </a>
+          <button type="button" class="profile-logout" id="logout">Log out</button>
+        </div>
         <button id="connect" class="btn-strava" type="button" aria-label="Connect with Strava">
           <img src="/btn_strava_connect_with_orange.svg" alt="Connect with Strava" />
         </button>
@@ -124,38 +131,25 @@
       </div>
       <div class="map-wrapper">
         <div id="map" aria-label="Activity map"></div>
-        <div id="status-spinner" class="map-overlay-spinner" role="status" aria-label="Loading" hidden></div>
-        <p id="status-message" class="map-overlay-message" hidden></p>
-        <div class="map-insights" aria-label="Map insights">
-          <a class="insight-chip" href="#analysis-strip">
-            <span class="insight-label">Training load</span>
-            <span class="insight-value" data-metric="load-short">—</span>
-          </a>
-          <a class="insight-chip" href="#analysis-strip">
-            <span class="insight-label">Marathon est.</span>
-            <span class="insight-value" data-metric="marathon-estimate">—</span>
-          </a>
-          <a class="insight-chip" href="#analysis-strip">
-            <span class="insight-label">Goal progress</span>
-            <span class="insight-value" data-metric="goal-progress">—</span>
-          </a>
-        </div>
+        <div id="status-spinner" class="map-overlay-spinner" role="status" aria-label="Loading" hidden></div>     
       </div>
       <div class="analysis-strip" id="analysis-strip" aria-label="Analysis highlights">
         <article class="analysis-card">
           <div class="analysis-card-header">
             <p class="label">Training load</p>
-            <span class="analysis-meta">7d / 28d</span>
           </div>
-          <p class="analysis-value" data-metric="training-load">—</p>
+          <div class="analysis-value-row">
+            <p class="analysis-value" data-metric="training-load">—</p>
+            <span class="analysis-chip load-chip" data-metric="training-load-status">—</span>
+          </div>
           <div class="analysis-sparkline" aria-hidden="true">
-            <span style="--h: 42%"></span>
-            <span style="--h: 58%"></span>
-            <span style="--h: 50%"></span>
-            <span style="--h: 66%"></span>
-            <span style="--h: 40%"></span>
-            <span style="--h: 74%"></span>
-            <span style="--h: 62%"></span>
+            <span class="analysis-sparkline-bar" style="--h: 42%"></span>
+            <span class="analysis-sparkline-bar" style="--h: 58%"></span>
+            <span class="analysis-sparkline-bar" style="--h: 50%"></span>
+            <span class="analysis-sparkline-bar" style="--h: 66%"></span>
+            <span class="analysis-sparkline-bar" style="--h: 40%"></span>
+            <span class="analysis-sparkline-bar" style="--h: 74%"></span>
+            <span class="analysis-sparkline-bar" style="--h: 62%"></span>
           </div>
         </article>
         <article class="analysis-card goal-card">
@@ -163,28 +157,23 @@
             <p class="label">Yearly goal</p>
             <span class="analysis-meta" data-goal-meta>Distance</span>
           </div>
-<<<<<<< Updated upstream
-          <p class="analysis-note">Coming soon…</p>
-=======
-          <div class="goal-carousel" id="goal-carousel" aria-label="Yearly goals">
-            <div class="goal-slide is-empty">
-              <div class="goal-heading">
-                <span class="goal-icon">
-                  <i class="fa-solid fa-flag-checkered" aria-hidden="true"></i>
-                </span>
-                <span class="goal-sport">No goals yet</span>
-              </div>
-              <p class="analysis-note">Set a target to track progress.</p>
-            </div>
+          <p class="analysis-value" data-metric="goal-distance">—</p>
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" style="width: 0%"></div>
           </div>
->>>>>>> Stashed changes
+          <p class="analysis-note">Set a target to track progress.</p>
         </article>
         <article class="analysis-card">
           <div class="analysis-card-header">
             <p class="label">Prediction</p>
             <span class="analysis-meta">Estimate</span>
           </div>
-          <p class="analysis-note">Coming soon…</p>
+          <p class="analysis-value" data-metric="marathon-time">—</p>
+          <div class="analysis-kicker">
+            <span>Confidence</span>
+            <span class="analysis-chip">—</span>
+          </div>
+          <p class="analysis-note">Based on recent runs.</p>
         </article>
       </div>
     </section>
@@ -238,10 +227,22 @@
     </div>
   </footer>
 
+  <div id="privacy-banner" class="cookie-banner privacy-banner" role="dialog" aria-live="polite" hidden>
+    <div class="cookie-banner-text">
+      <p>
+        The privacy policy was updated on <strong>25.01.2026</strong>. Please take a moment to review it.
+      </p>
+    </div>
+    <div class="cookie-banner-actions">
+      <button type="button" id="privacy-accept">Got it</button>
+      <a href="/api/pages?slug=privacy" class="ghost" target="_blank" rel="noreferrer">View privacy policy</a>
+    </div>
+  </div>
+
   <div id="cookie-banner" class="cookie-banner" role="dialog" aria-live="polite" hidden>
     <div class="cookie-banner-text">
       <p>
-        Atlo uses essential cookies only and does not collect or store any kind of user-data.
+        Atlo uses essential cookies only.
         By continuing to use Atlo, you agree to our use of cookies. Learn more in our
         <a href="/api/pages?slug=faq" target="_blank" rel="noreferrer">FAQ</a>.
       </p>

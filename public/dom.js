@@ -1,5 +1,7 @@
 export const els = {
   connect: document.getElementById("connect"),
+  profileMenu: document.getElementById("profile-menu"),
+  logout: document.getElementById("logout"),
   status: document.getElementById("status"),
   list: document.getElementById("list"),
   count: document.getElementById("count"),
@@ -23,6 +25,8 @@ export const els = {
   rangePickerInput: document.getElementById("date-range-picker"),
   cookieBanner: document.getElementById("cookie-banner"),
   cookieAccept: document.getElementById("cookie-accept"),
+  privacyBanner: document.getElementById("privacy-banner"),
+  privacyAccept: document.getElementById("privacy-accept"),
   activityFilterButtons: document.getElementById("activity-filter-buttons"),
   activitySummaryButtons: document.getElementById("activitiy-summary-button"),
 };

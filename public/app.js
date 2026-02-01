@@ -23,7 +23,7 @@ import {
   checkAuthStatus,
   updateAuthUI,
 } from "./auth.js";
-import { initCookieBanner /*, clearLocalStateForDev */ } from "./consent.js";
+import { initCookieBanner, initPrivacyBanner, clearLocalStateForDev } from "./consent.js";
 import { els } from "./dom.js";
 import { state } from "./state.js";
 
@@ -66,6 +66,7 @@ function handleLogoutCleanup() {
   state.allActivities = [];
   state.expandedActivities.clear();
   state.currentPage = 1;
+  state.maxHeartRate = null;
   if (els.count) {
     els.count.textContent = "0";
   }
@@ -78,10 +79,11 @@ function handleLogoutCleanup() {
 async function init() {
   if (isLocalHost()) {
     // Clear persisted state while working locally so changes are easy to test.
-    // clearLocalStateForDev();
+     //clearLocalStateForDev();
   }
 
   const consentGiven = await initCookieBanner();
+  initPrivacyBanner();
   if (!consentGiven) {
     return;
   }
@@ -115,8 +117,12 @@ async function init() {
   });
 
   if (!hasSession) {
+    updateAuthUI(false);
     return;
   }
+
+  const authed = await checkAuthStatus();
+  updateAuthUI(authed);
 
   const mapReady = await initMapInstance();
   if (!mapReady) {
@@ -124,10 +130,6 @@ async function init() {
   }
 
   await loadActivities();
-
-  checkAuthStatus().then((authed) => {
-    updateAuthUI(authed);
-  });
 }
 
 init().catch((err) => {

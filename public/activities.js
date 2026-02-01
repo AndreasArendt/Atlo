@@ -1,164 +1,29 @@
 import { api } from "./api.js";
 import {
-  renderList,
   renderSummary,
   showStatusSpinner,
   hideStatusSpinner,
   showStatusMessage,
 } from "./ui.js";
 import { gearSummaryTemplate } from "./templates/gearSummaryTemplate.js";
-import { renderPolylines, applyMapStyle, focusActivity } from "./map.js";
+import { renderPolylines, applyMapStyle } from "./map.js";
 import { els } from "./dom.js";
 import { state } from "./state.js";
 import { getDateRange, formatRangeLabel } from "./dateRange.js";
 import { handleAuthRequired, updateAuthUI } from "./auth.js";
+import {
+  renderCurrentPage,
+  updatePaginationControls,
+  applyActivityFilter,
+  addActivityTypeFilterButtons,
+  setActiveActivitySummaryButton,
+  bindPaginationControls,
+  bindListToggle,
+} from "./listView.js";
+import { ensureMaxHeartRate, updateTrainingLoadFromActivities } from "./analysis.js";
 
-const PAGE_SIZE = 10;
 const AUTH_ERROR_PATTERN = /(Not authenticated|Missing session state|No token)/i;
-
-function getTotalPages() {
-  return Math.max(1, Math.ceil(state.displayActivities.length / PAGE_SIZE));
-}
-
-function updatePaginationControls() {
-  if (!els.pagination || !els.pageIndicator || !els.prevPage || !els.nextPage)
-    return;
-  const totalPages = getTotalPages();
-  if (state.currentPage > totalPages) state.currentPage = totalPages;
-  els.pageIndicator.textContent = `Page ${state.currentPage} of ${totalPages}`;
-  els.prevPage.disabled = state.currentPage === 1;
-  els.nextPage.disabled = state.currentPage === totalPages;
-  const shouldShow = state.displayActivities.length > PAGE_SIZE;
-  els.pagination.hidden = !shouldShow;
-}
-
-export function renderCurrentPage() {
-  if (!els.list) return;
-  if (!state.displayActivities.length) {
-    state.currentPage = 1;
-    renderList([], els.list);
-    if (els.pagination) {
-      els.pagination.hidden = true;
-    }
-    updatePaginationControls();
-    return;
-  }
-
-  const totalPages = getTotalPages();
-  if (state.currentPage > totalPages) {
-    state.currentPage = totalPages;
-  }
-  const start = (state.currentPage - 1) * PAGE_SIZE;
-  const pageItems = state.displayActivities.slice(start, start + PAGE_SIZE);
-  renderList(pageItems, els.list, state.expandedActivities);
-  updatePaginationControls();
-}
-
-function applyActivityFilter(filter) {
-  const normalizedFilter = (filter || "All").toString().trim() || "All";
-  state.currentActivityFilter = normalizedFilter;
-
-  const collectGearIds = (activities = []) =>
-    [...new Set(activities.map((item) => item.gear_id).filter(Boolean))];
-
-  if (!state.allActivities.length) {
-    state.displayActivities = [];
-    state.displayGearIDs = [];
-    return;
-  }
-
-  if (normalizedFilter === "All") {
-    state.displayActivities = [...state.allActivities];
-    state.displayGearIDs = collectGearIds(state.displayActivities);
-    return;
-  }
-
-  state.displayActivities = state.allActivities.filter(
-    (activity) => activity.type === normalizedFilter
-  );
-  state.displayGearIDs = collectGearIds(state.displayActivities);
-
-  console.log(state.displayGearIDs);
-}
-
-function setActiveActivityFilterButton(filterLabel = "All") {
-  if (!els.activityFilterButtons) return;
-  Array.from(els.activityFilterButtons.querySelectorAll("button")).forEach(
-    (btn) => {
-      const label = (btn.dataset.filter || btn.textContent || "").trim();
-      btn.classList.toggle("active", label === filterLabel);
-    }
-  );
-}
-
-export function setActiveActivitySummaryButton(filterLabel = "list") {
-  if (!els.activitySummaryButtons) return;
-  const normalized = (filterLabel || "").toString().toLowerCase();
-  Array.from(els.activitySummaryButtons.querySelectorAll("button")).forEach(
-    (btn) => {
-      const label =
-        btn.getAttribute("activity-summary-style") ||
-        btn.dataset.filter ||
-        btn.textContent ||
-        "";
-      btn.classList.toggle(
-        "active",
-        label.toString().toLowerCase() === normalized
-      );
-    }
-  );
-}
-
-function addActivityTypeFilterButtons(activities) {
-  if (!els.activityFilterButtons) return;
-
-  const activityTypes = [...new Set(activities.map((a) => a.type).filter(Boolean))];
-  const container = els.activityFilterButtons;
-
-  Array.from(container.querySelectorAll("button")).forEach((btn, idx) => {
-    if (idx === 0) {
-      btn.dataset.filter = "All";
-      btn.textContent = "All";
-      btn.classList.add("active");
-      return;
-    }
-    btn.remove();
-  });
-
-  activityTypes.forEach((type) => {
-    const label = String(type).trim();
-    if (!label) return;
-
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = label.split(/(?=[A-Z])/).join(" ");
-    button.dataset.filter = label;
-
-    container.appendChild(button);
-  });
-
-  if (!state.activityFilterHandlerBound) {
-    container.addEventListener("click", (e) => {
-      const button = e.target.closest("button");
-      if (!button || !container.contains(button)) return;
-
-      const filterValue =
-        (button.dataset.filter || button.textContent || "").trim() || "All";
-      state.currentActivityFilter = filterValue;
-      setActiveActivityFilterButton(filterValue);
-      updateActivityDisplay().catch((err) =>
-        console.error("Failed to update activities:", err)
-      );
-    });
-    state.activityFilterHandlerBound = true;
-  }
-
-  const availableFilters = ["All", ...activityTypes];
-  if (!availableFilters.includes(state.currentActivityFilter)) {
-    state.currentActivityFilter = "All";
-  }
-  setActiveActivityFilterButton(state.currentActivityFilter);
-}
+const TRAINING_LOAD_LOOKBACK_DAYS = 90;
 
 function computeTotals(activities) {
   return activities.reduce(
@@ -170,95 +35,6 @@ function computeTotals(activities) {
     },
     { distance: 0, movingTime: 0, elevationGain: 0 }
   );
-}
-
-function formatSufferScore(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return "0";
-  return Math.round(numeric).toLocaleString();
-}
-
-function buildSufferSparkline(activities = [], scores = [], maxBars = 28) {
-  const cutoff7Days = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const count = Math.min(activities.length, scores.length, maxBars);
-  const pairs = [];
-
-  for (let i = 0; i < count; i += 1) {
-    const activity = activities[i];
-    const score = Number(scores[i]) || 0;
-    const dateValue = activity?.date;
-    const activityTime =
-      typeof dateValue === "number"
-        ? dateValue
-        : dateValue instanceof Date
-        ? dateValue.getTime()
-        : Date.parse(dateValue);
-    const isRecent = !Number.isNaN(activityTime) && activityTime >= cutoff7Days;
-    pairs.push({ value: score, isRecent });
-  }
-
-  const values = pairs.reverse();
-  const maxValue = values.length
-    ? values.reduce((max, item) => Math.max(max, item.value), 0)
-    : 0;
-
-  return values.map((item) => {
-    const height = maxValue
-      ? Math.max((item.value / maxValue) * 100, item.value ? 6 : 0)
-      : 0;
-    return {
-      height: Math.min(height, 100),
-      isRecent: item.isRecent,
-    };
-  });
-}
-
-function updateAnalysisDisplay() {
-  const trainingLoadEl = document.querySelector(
-    '[data-metric="training-load"]'
-  );
-  const loadShortEl = document.querySelector('[data-metric="load-short"]');
-  const sparklineEl = document.querySelector(".analysis-sparkline");
-
-  const last7Total = (state.last7DaysSufferScore || []).reduce(
-    (sum, score) => sum + (Number(score) || 0),
-    0
-  );
-  const last28Total = (state.last28DaysSufferScore || []).reduce(
-    (sum, score) => sum + (Number(score) || 0),
-    0
-  );
-
-  if (trainingLoadEl) {
-    trainingLoadEl.textContent = `${formatSufferScore(
-      last7Total
-    )} / ${formatSufferScore(last28Total)}`;
-  }
-
-  if (loadShortEl) {
-    loadShortEl.textContent = formatSufferScore(last7Total);
-  }
-
-  if (!sparklineEl) return;
-
-  const bars = buildSufferSparkline(
-    state.last28DaysActivities,
-    state.last28DaysSufferScore
-  );
-  sparklineEl.style.setProperty(
-    "--bar-count",
-    Math.max(1, bars.length).toString()
-  );
-  const helpLink =
-    '<a class="analysis-help" href="/api/pages?slug=analysis" target="_blank" rel="noopener noreferrer" aria-label="Training load notes">?</a>';
-  sparklineEl.innerHTML = bars
-    .map(
-      (bar) =>
-        `<span style="--h: ${bar.height}%"${
-          bar.isRecent ? ' class="is-recent"' : ""
-        }></span>`
-    )
-    .join("") + helpLink;
 }
 
 const getCssVar = (name, fallback) =>
@@ -412,44 +188,6 @@ export async function updateActivityDisplay({ skipMapUpdate = false } = {}) {
       els.pagination.classList.toggle("display-summary", !viewMode.showPagination);
     }
 
-    const now = Date.now();
-    const cutoff7Days = now - 7 * 24 * 60 * 60 * 1000;
-    const cutoff28Days = now - 28 * 24 * 60 * 60 * 1000;
-    const last7DaysActivities = [];
-    const last28DaysActivities = [];
-    const last7DaysSufferScore = [];
-    const last28DaysSufferScore = [];
-    
-    for (const activity of state.allActivities) {
-      const dateValue = activity?.date;
-      const activityTime =
-        typeof dateValue === "number"
-          ? dateValue
-          : dateValue instanceof Date
-          ? dateValue.getTime()
-          : Date.parse(dateValue);
-
-      if (Number.isNaN(activityTime)) continue;
-      if (activityTime < cutoff28Days) break;
-
-      last28DaysActivities.push(activity);
-      const movingTime = Number(activity?.moving_time) || 0;
-      const averageHeartrate = Number(activity?.average_heartrate) || 0;
-      const sufferScore = (movingTime / 60.0) * (averageHeartrate / 190.0);
-      last28DaysSufferScore.push(sufferScore);
-
-      if (activityTime >= cutoff7Days) {
-        last7DaysActivities.push(activity);
-        last7DaysSufferScore.push(sufferScore);
-      }
-    }
-
-    state.last7DaysActivities = last7DaysActivities;
-    state.last28DaysActivities = last28DaysActivities;
-    state.last7DaysSufferScore = last7DaysSufferScore;
-    state.last28DaysSufferScore = last28DaysSufferScore;
-    updateAnalysisDisplay();
-
     if (!state.allActivities.length) {
       state.displayActivities = [];
       els.count.textContent = "0";
@@ -457,7 +195,6 @@ export async function updateActivityDisplay({ skipMapUpdate = false } = {}) {
       if (!skipMapUpdate && state.mapInstance) {
         renderPolylines(state.mapInstance, []);
       }
-      renderList([], els.list);
       state.currentPage = 1;
       renderCurrentPage();
       updatePaginationControls();
@@ -547,6 +284,7 @@ export async function loadActivities() {
   showStatusSpinner();
 
   try {
+    await ensureMaxHeartRate();
     const before = new Date(els.endDate.value);
     before.setDate(before.getDate() + 1); // include end date activities by offsetting the upper bound
     const beforeParam = Number.isNaN(before.getTime())
@@ -558,10 +296,6 @@ export async function loadActivities() {
       before: beforeParam,
     });
 
-<<<<<<< Updated upstream
-    state.allActivities = await api(`/api/activities?${params.toString()}`);
-    addActivityTypeFilterButtons(state.allActivities);
-=======
     const trainingBefore = new Date();
     const trainingAfter = new Date(trainingBefore);
     trainingAfter.setDate(
@@ -572,27 +306,10 @@ export async function loadActivities() {
       before: trainingBefore.toISOString(),
     });
 
-    const now = new Date();
-    const yearStart = new Date(now.getFullYear(), 0, 1);
-    const shouldFetchYearGoals =
-      Array.isArray(state.yearlyGoals) &&
-      state.yearlyGoals.length > 0 &&
-      state.yearlyGoalYear !== now.getFullYear();
-    const yearlyParams = new URLSearchParams({
-      after: yearStart.toISOString(),
-      before: now.toISOString(),
-    });
-
-    const requests = [
+    const [listResult, trainingResult] = await Promise.allSettled([
       api(`/api/activities?${params.toString()}`),
       api(`/api/activities?${trainingParams.toString()}`),
-    ];
-    if (shouldFetchYearGoals) {
-      requests.push(api(`/api/activities?${yearlyParams.toString()}`));
-    }
-
-    const [listResult, trainingResult, yearlyResult] =
-      await Promise.allSettled(requests);
+    ]);
 
     if (listResult.status !== "fulfilled") {
       throw listResult.reason;
@@ -603,10 +320,6 @@ export async function loadActivities() {
       trainingResult.status === "fulfilled"
         ? trainingResult.value
         : listResult.value;
-    if (shouldFetchYearGoals && yearlyResult?.status === "fulfilled") {
-      state.yearlyGoalActivities = yearlyResult.value;
-      state.yearlyGoalYear = now.getFullYear();
-    }
 
     updateTrainingLoadFromActivities(state.trainingLoadActivities);
     addActivityTypeFilterButtons(state.allActivities, () =>
@@ -614,10 +327,11 @@ export async function loadActivities() {
         console.error("Failed to update activities:", err)
       )
     );
->>>>>>> Stashed changes
     await updateActivityDisplay();
 
-    updateAuthUI(true);
+    if (state.isAuthenticated) {
+      updateAuthUI(true);
+    }
   } catch (err) {
     console.error(err);
     if (AUTH_ERROR_PATTERN.test(err?.message || "")) {
@@ -646,47 +360,9 @@ export function bindSummaryStyleButtons() {
   });
 }
 
-export function bindPaginationControls() {
-  if (!els.prevPage || !els.nextPage) return;
-  els.prevPage.addEventListener("click", () => {
-    if (state.currentPage === 1) return;
-    state.currentPage -= 1;
-    renderCurrentPage();
-  });
-
-  els.nextPage.addEventListener("click", () => {
-    const totalPages = getTotalPages();
-    if (state.currentPage >= totalPages) return;
-    state.currentPage += 1;
-    renderCurrentPage();
-  });
-}
-
-export function bindListToggle() {
-  if (!els.list) return;
-  els.list.addEventListener("click", (event) => {
-    const focusButton = event.target.closest("[data-activity-focus]");
-    if (focusButton) {
-      const activityId = focusButton.getAttribute("data-activity-focus");
-      const activity = state.displayActivities.find(
-        (a) => String(a.id) === String(activityId)
-      );
-      if (activity && state.mapInstance) {
-        focusActivity(state.mapInstance, activity);
-      }
-      return;
-    }
-
-    const toggle = event.target.closest("[data-activity-toggle]");
-    if (!toggle) return;
-    const activityId = toggle.getAttribute("data-activity-toggle");
-    if (!activityId) return;
-    const key = String(activityId);
-    if (state.expandedActivities.has(key)) {
-      state.expandedActivities.delete(key);
-    } else {
-      state.expandedActivities.add(key);
-    }
-    renderCurrentPage();
-  });
-}
+export {
+  renderCurrentPage,
+  setActiveActivitySummaryButton,
+  bindPaginationControls,
+  bindListToggle,
+};

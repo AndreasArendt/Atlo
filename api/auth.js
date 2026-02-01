@@ -15,6 +15,17 @@ const LOGO_DATA_URI = (() => {
   }
 })();
 
+const resolveMaxHeartRate = (zones = []) => {
+  if (!Array.isArray(zones) || zones.length === 0) return null;
+  const lastMax = Number(zones[zones.length - 1]?.max);
+  if (Number.isFinite(lastMax) && lastMax > 0) return lastMax;
+  const candidates = zones
+    .map((zone) => Number(zone?.max))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  if (!candidates.length) return null;
+  return Math.max(...candidates);
+};
+
 export default async function handler(req, res) {
   try {
     // Fail fast if required env vars are missing to avoid generic 500s
@@ -72,8 +83,6 @@ export default async function handler(req, res) {
     }
 
     const token = await tokenResponse.json();
-<<<<<<< Updated upstream:api/strava.js
-=======
 
     const athlete = token?.athlete || {};
     const userId = athlete?.id;
@@ -123,19 +132,15 @@ export default async function handler(req, res) {
         username: existingProfile?.username ?? athlete?.username ?? null,
         maxHeartRate,
         restingHeartRate: existingProfile?.restingHeartRate ?? null,
-        yearlyGoals: existingProfile?.yearlyGoals ?? [],
       };
       await kv.set(profileKey, user);
     }
 
     // Persist per-user token securely with a reasonable TTL (30 days)
->>>>>>> Stashed changes:api/auth.js
     delete token["athlete"]; // Remove athlete info to reduce stored data
-    
-    // Persist per-user token securely with a reasonable TTL (30 days)
     const ttlSeconds = 60 * 60 * 24 * 30;
     await kv.set(`strava:token:${state}`, token, { ex: ttlSeconds });
-    await kv.expire(`atlo:session:${state}`, SESSION_TTL_SECONDS);
+    await kv.expire(sessionKey, SESSION_TTL_SECONDS);
 
     res.status(200).send(`
       <!doctype html>
@@ -218,7 +223,7 @@ export default async function handler(req, res) {
       </html>
     `);
   } catch (err) {
-    console.log("Error in /api/strava:", err);
+    console.log("Error in /api/auth:", err);
     res.status(500).send("Internal error");
   }
 }
