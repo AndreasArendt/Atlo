@@ -153,15 +153,29 @@
           </div>
         </article>
         <article class="analysis-card goal-card">
-          <div class="analysis-card-header">
-            <p class="label">Yearly goal</p>
-            <span class="analysis-meta" data-goal-meta>Distance</span>
+          <div class="analysis-card-header goal-card-header">
+            <div class="goal-title">
+              <p class="label">Goals</p>
+              <span class="analysis-meta" data-goal-meta>Current period</span>
+            </div>
+            <div class="goal-header-actions">
+              <button type="button" class="goal-action goal-edit" data-goal-edit-active aria-label="Edit goal">
+                <i class="fa-solid fa-gear" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="goal-action goal-add" data-goal-toggle aria-label="Add goal">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
-          <p class="analysis-value" data-metric="goal-distance">—</p>
-          <div class="progress-track" aria-hidden="true">
-            <div class="progress-fill" style="width: 0%"></div>
+          <div class="goal-carousel-wrap">
+            <button type="button" class="goal-nav goal-nav-left" data-goal-prev aria-label="Previous goal">
+              <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
+            </button>
+            <div class="goal-carousel" data-goal-carousel></div>
+            <button type="button" class="goal-nav goal-nav-right" data-goal-next aria-label="Next goal">
+              <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+            </button>
           </div>
-          <p class="analysis-note">Set a target to track progress.</p>
         </article>
         <article class="analysis-card">
           <div class="analysis-card-header">
@@ -226,6 +240,42 @@
 
     </div>
   </footer>
+
+  <div class="modal goal-modal" data-goal-modal hidden>
+    <div class="modal-backdrop" data-goal-backdrop></div>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="goal-modal-title">
+      <button type="button" class="modal-close" data-goal-close aria-label="Close">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+      <p class="modal-eyebrow">Goal</p>
+      <h2 id="goal-modal-title">Set goal</h2>
+      <form class="goal-form" data-goal-form>
+        <input type="hidden" data-goal-id />
+        <div class="goal-form-row">
+          <label for="goal-sport">Sport</label>
+          <select id="goal-sport" name="goal-sport" data-goal-sport></select>
+        </div>
+        <div class="goal-form-row">
+          <label for="goal-target">Target (km)</label>
+          <input id="goal-target" name="goal-target" type="number" min="1" max="100000" step="1" inputmode="numeric" autocomplete="off" data-goal-target />
+        </div>
+        <div class="goal-form-row">
+          <label for="goal-period">Period</label>
+          <select id="goal-period" name="goal-period" data-goal-period>
+            <option value="week">Weekly</option>
+            <option value="month">Monthly</option>
+            <option value="year">Yearly</option>
+          </select>
+        </div>
+        <div class="goal-form-actions">
+          <button type="submit" class="goal-primary">Save goal</button>
+          <button type="button" class="goal-ghost" data-goal-cancel>Cancel</button>
+          <button type="button" class="goal-ghost goal-clear" data-goal-clear>Remove goal</button>
+        </div>
+        <p class="goal-form-status" data-goal-status></p>
+      </form>
+    </div>
+  </div>
 
   <div id="privacy-banner" class="cookie-banner privacy-banner" role="dialog" aria-live="polite" hidden>
     <div class="cookie-banner-text">

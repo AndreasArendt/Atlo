@@ -26,6 +26,7 @@ import {
 import { initCookieBanner, initPrivacyBanner, clearLocalStateForDev } from "./consent.js";
 import { els } from "./dom.js";
 import { state } from "./state.js";
+import { initGoalCard } from "./goals.js";
 
 function isLocalHost() {
   const hostname = window?.location?.hostname || "";
@@ -87,6 +88,8 @@ async function init() {
   if (!consentGiven) {
     return;
   }
+
+  initGoalCard();
 
   els.connect?.classList.add("cookie-consent-given");
 

@@ -21,6 +21,7 @@ import {
   bindListToggle,
 } from "./listView.js";
 import { ensureMaxHeartRate, updateTrainingLoadFromActivities } from "./analysis.js";
+import { updateGoalCard } from "./goals.js";
 
 const AUTH_ERROR_PATTERN = /(Not authenticated|Missing session state|No token)/i;
 const TRAINING_LOAD_LOOKBACK_DAYS = 90;
@@ -328,6 +329,9 @@ export async function loadActivities() {
       )
     );
     await updateActivityDisplay();
+    updateGoalCard({ activities: state.allActivities, rangeStart: start, rangeEnd: end }).catch(
+      (err) => console.warn("Goal update failed:", err)
+    );
 
     if (state.isAuthenticated) {
       updateAuthUI(true);
