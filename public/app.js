@@ -26,7 +26,7 @@ import {
 import { initCookieBanner, initPrivacyBanner, clearLocalStateForDev } from "./consent.js";
 import { els } from "./dom.js";
 import { state } from "./state.js";
-import { initGoalCard } from "./goals.js";
+import { initGoalCard, syncGoalsFromServer } from "./goals.js";
 
 function isLocalHost() {
   const hostname = window?.location?.hostname || "";
@@ -60,6 +60,7 @@ async function handleAuthenticated() {
     if (!mapReady) return;
   }
   await loadActivities();
+  await syncGoalsFromServer().catch(() => null);
 }
 
 function handleLogoutCleanup() {
@@ -133,6 +134,9 @@ async function init() {
   }
 
   await loadActivities();
+  if (authed) {
+    await syncGoalsFromServer().catch(() => null);
+  }
 }
 
 init().catch((err) => {

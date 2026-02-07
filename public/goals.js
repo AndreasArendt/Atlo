@@ -66,6 +66,7 @@ const PERIOD_BY_ID = new Map(PERIODS.map((period) => [period.id, period]));
 const GOAL_STORAGE_KEY = "atlo.goals.v2";
 const LEGACY_GOAL_KEY = "atlo.goal.v1";
 const GOAL_DISTANCE_LIMITS = { min: 1, max: 100000 };
+const GOAL_API_PATH = "/api/goals";
 
 let goals = [];
 let goalLoaded = false;
@@ -74,6 +75,7 @@ let lastActivities = [];
 let lastRangeStart = null;
 let lastRangeEnd = null;
 let currentEditId = null;
+let goalSyncPromise = null;
 
 const periodCache = new Map();
 const pendingPeriod = new Map();
@@ -174,6 +176,76 @@ function saveGoals(nextGoals) {
   } catch {
     // ignore storage errors
   }
+  persistGoalsToServer(goals);
+}
+
+function saveGoalsToStorage(nextGoals) {
+  goals = Array.isArray(nextGoals) ? nextGoals : [];
+  try {
+    window.localStorage.setItem(GOAL_STORAGE_KEY, JSON.stringify(goals));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+async function persistGoalsToServer(nextGoals) {
+  if (!Array.isArray(nextGoals)) return false;
+  try {
+    await api(GOAL_API_PATH, {
+      method: "POST",
+      body: { goals: nextGoals },
+    });
+    return true;
+  } catch (err) {
+    console.warn("Goal save failed:", err?.message || err);
+    return false;
+  }
+}
+
+async function fetchGoalsFromServer() {
+  try {
+    const data = await api(GOAL_API_PATH);
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.warn("Goal load failed:", err?.message || err);
+    return null;
+  }
+}
+
+export async function syncGoalsFromServer() {
+  if (goalSyncPromise) return goalSyncPromise;
+  goalSyncPromise = (async () => {
+    const remote = await fetchGoalsFromServer();
+    if (!remote) return null;
+
+    const sanitizedRemote = remote.map((goal) => sanitizeGoal(goal)).filter(Boolean);
+    const local = loadGoalListFromStorage(GOAL_STORAGE_KEY);
+    if (!sanitizedRemote.length && local.length) {
+      const sanitizedLocal = local.map((goal) => sanitizeGoal(goal)).filter(Boolean);
+      if (sanitizedLocal.length) {
+        const saved = await persistGoalsToServer(sanitizedLocal);
+        if (saved) {
+          saveGoalsToStorage(sanitizedLocal);
+          return sanitizedLocal;
+        }
+      }
+    }
+
+    saveGoalsToStorage(sanitizedRemote);
+    return sanitizedRemote;
+  })().finally(() => {
+    goalSyncPromise = null;
+  });
+
+  const result = await goalSyncPromise;
+  if (Array.isArray(result)) {
+    updateGoalCard({
+      activities: lastActivities,
+      rangeStart: lastRangeStart,
+      rangeEnd: lastRangeEnd,
+    }).catch(() => null);
+  }
+  return result;
 }
 
 function getGoalElements() {
@@ -356,6 +428,9 @@ function renderEmptyGoals() {
       Add a goal to track progress.
     </div>
   `;
+  if (goalEls.card) {
+    goalEls.card.classList.add("goal-card-empty");
+  }
   if (goalEls.note) {
     goalEls.note.hidden = true;
   }
@@ -429,6 +504,9 @@ function renderGoals(progressById, partialById = {}) {
     .join("");
 
   goalEls.carousel.innerHTML = slides;
+  if (goalEls.card) {
+    goalEls.card.classList.remove("goal-card-empty");
+  }
 
   if (goalEls.note) {
     goalEls.note.hidden = true;
@@ -740,6 +818,8 @@ export function initGoalCard() {
     rangeStart: lastRangeStart,
     rangeEnd: lastRangeEnd,
   }).catch(() => null);
+
+  syncGoalsFromServer().catch(() => null);
 }
 
 export async function updateGoalCard({ activities = [], rangeStart, rangeEnd } = {}) {

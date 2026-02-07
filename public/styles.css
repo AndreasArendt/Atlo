@@ -998,11 +998,16 @@ button:active { transform: translateY(0); }
 
 
 .goal-slide-empty {
-  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 86px;
+  padding: 8px 12px;
   color: var(--muted);
   font-size: 11px;
-  background: rgba(15, 23, 42, 0.03);
+  background: rgba(15, 23, 42, 0.02);
   border-radius: 12px;
+  text-align: center;
 }
 
 .goal-card-header {
@@ -1020,6 +1025,15 @@ button:active { transform: translateY(0); }
 }
 
 .goal-card .analysis-meta {
+  display: none;
+}
+
+.goal-card-empty .goal-nav {
+  display: none;
+}
+
+.goal-card-empty .goal-action-tray .goal-edit,
+.goal-card-empty .goal-action-tray .goal-delete {
   display: none;
 }
 
