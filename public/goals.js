@@ -188,6 +188,7 @@ function getGoalElements() {
     note: card.querySelector("[data-goal-note]"),
     toggle: card.querySelector("[data-goal-toggle]"),
     editActive: card.querySelector("[data-goal-edit-active]"),
+    deleteActive: card.querySelector("[data-goal-delete-active]"),
     carousel: card.querySelector("[data-goal-carousel]"),
     prev: card.querySelector("[data-goal-prev]"),
     next: card.querySelector("[data-goal-next]"),
@@ -381,9 +382,6 @@ function buildGoalNote(progress, goal, meta, isPartial) {
     `Goal: ${formatKmValue(goal.targetKm, { allowZero: true })}`,
     `${formatPercent(progress.percent)} complete`,
   ];
-  if (meta?.meta) {
-    parts.push(meta.meta);
-  }
   if (isPartial) {
     parts.push("Range only");
   }
@@ -408,17 +406,17 @@ function renderGoals(progressById, partialById = {}) {
       const fillWidth = Math.min(progress.percent || 0, 100);
       return `
         <div class="goal-slide" data-goal-id="${escapeHtml(goal.id)}" data-goal-period="${escapeHtml(goal.period)}">
-          <div class="goal-heading" aria-label="${escapeHtml(headingLabel)}" title="${escapeHtml(headingLabel)}">
-            <span class="goal-icon"><i class="fa-solid ${escapeHtml(sportMeta?.icon || "fa-flag-checkered")}" aria-hidden="true"></i></span>
+          <div class="goal-slide-top">
+            <div class="goal-heading" aria-label="${escapeHtml(headingLabel)}" title="${escapeHtml(headingLabel)}">
+              <span class="goal-icon"><i class="fa-solid ${escapeHtml(sportMeta?.icon || "fa-flag-checkered")}" aria-hidden="true"></i></span>
+              <span class="goal-heading-label">${escapeHtml(headingLabel)}</span>
+            </div>
           </div>
           <p class="analysis-value">${formatKmValue(progress.totalKm, { allowZero: true })}</p>
           <div class="progress-track" aria-hidden="true">
             <div class="progress-fill" style="width: ${fillWidth}%"></div>
           </div>
           <p class="goal-sub">${escapeHtml(note)}</p>
-          <button type="button" class="goal-icon-btn goal-delete" data-goal-delete="${escapeHtml(goal.id)}" aria-label="Delete goal">
-            <i class="fa-solid fa-trash" aria-hidden="true"></i>
-          </button>
         </div>
       `;
     })
@@ -478,6 +476,13 @@ function updateHeaderActions() {
     "aria-label",
     hasGoals ? "Edit goal" : "Edit goal (disabled)"
   );
+  if (goalEls.deleteActive) {
+    goalEls.deleteActive.disabled = !hasGoals;
+    goalEls.deleteActive.setAttribute(
+      "aria-label",
+      hasGoals ? "Delete goal" : "Delete goal (disabled)"
+    );
+  }
 }
 
 function scrollToSlide(index) {
@@ -651,6 +656,16 @@ function bindGoalEvents() {
       openGoalModal(goal);
     }
   });
+  goalEls.deleteActive?.addEventListener("click", () => {
+    const goal = getActiveGoal();
+    if (!goal) return;
+    removeGoalById(goal.id);
+    updateGoalCard({
+      activities: lastActivities,
+      rangeStart: lastRangeStart,
+      rangeEnd: lastRangeEnd,
+    }).catch(() => null);
+  });
   goalEls.cancel?.addEventListener("click", closeGoalModal);
   goalEls.clear?.addEventListener("click", handleGoalClear);
   goalEls.close?.addEventListener("click", closeGoalModal);
@@ -658,21 +673,6 @@ function bindGoalEvents() {
   window.addEventListener("keydown", handleModalKey);
 
   goalEls.carousel?.addEventListener("scroll", handleCarouselScroll);
-  goalEls.carousel?.addEventListener("click", (event) => {
-    const deleteButton = event.target.closest("[data-goal-delete]");
-    if (deleteButton) {
-      const goalId = deleteButton.dataset.goalDelete;
-      if (goalId) {
-        removeGoalById(goalId);
-        updateGoalCard({
-          activities: lastActivities,
-          rangeStart: lastRangeStart,
-          rangeEnd: lastRangeEnd,
-        }).catch(() => null);
-      }
-    }
-  });
-
   goalEls.prev?.addEventListener("click", () => {
     const index = getClosestSlideIndex();
     scrollToSlide(index - 1);

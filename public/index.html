@@ -159,12 +159,20 @@
               <span class="analysis-meta" data-goal-meta>Current period</span>
             </div>
             <div class="goal-header-actions">
-              <button type="button" class="goal-action goal-edit" data-goal-edit-active aria-label="Edit goal">
-                <i class="fa-solid fa-gear" aria-hidden="true"></i>
+              <button type="button" class="goal-action goal-action-menu" aria-label="Goal actions">
+                <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
               </button>
-              <button type="button" class="goal-action goal-add" data-goal-toggle aria-label="Add goal">
-                <i class="fa-solid fa-plus" aria-hidden="true"></i>
-              </button>
+              <div class="goal-action-tray" aria-label="Goal actions">
+                <button type="button" class="goal-action goal-delete" data-goal-delete-active aria-label="Delete goal">
+                  <i class="fa-solid fa-trash" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="goal-action goal-edit" data-goal-edit-active aria-label="Edit goal">
+                  <i class="fa-solid fa-gear" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="goal-action goal-add" data-goal-toggle aria-label="Add goal">
+                  <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                </button>
+              </div>
             </div>
           </div>
           <div class="goal-carousel-wrap">
