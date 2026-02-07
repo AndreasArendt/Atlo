@@ -353,11 +353,17 @@ function renderEmptyGoals() {
   if (!goalEls?.carousel) return;
   goalEls.carousel.innerHTML = `
     <div class="goal-slide goal-slide-empty">
-      Add a weekly, monthly, or yearly goal to track progress.
+      Add a goal to track progress.
     </div>
   `;
   if (goalEls.note) {
     goalEls.note.hidden = true;
+  }
+  if (goalEls.prev) {
+    goalEls.prev.hidden = true;
+  }
+  if (goalEls.next) {
+    goalEls.next.hidden = true;
   }
   if (goalEls.toggle) {
     goalEls.toggle.setAttribute("aria-label", "Set goal");
@@ -426,6 +432,12 @@ function renderGoals(progressById, partialById = {}) {
 
   if (goalEls.note) {
     goalEls.note.hidden = true;
+  }
+  if (goalEls.prev) {
+    goalEls.prev.hidden = false;
+  }
+  if (goalEls.next) {
+    goalEls.next.hidden = false;
   }
   if (goalEls.toggle) {
     goalEls.toggle.setAttribute(

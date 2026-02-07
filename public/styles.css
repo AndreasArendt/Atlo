@@ -998,9 +998,9 @@ button:active { transform: translateY(0); }
 
 
 .goal-slide-empty {
-  padding: 12px 12px 10px;
+  padding: 8px 10px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   background: rgba(15, 23, 42, 0.03);
   border-radius: 12px;
 }
