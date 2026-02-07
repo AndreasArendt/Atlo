@@ -849,18 +849,18 @@ button:active { transform: translateY(0); }
 
 .analysis-sparkline {
   --bar-count: 7;
-  --bar-gap: 4px;
+  --bar-gap: 6px;
   display: flex;
   align-items: flex-end;
   gap: var(--bar-gap);
-  height: 28px;
+  height: 44px;
   position: relative;
   margin-top: 8px;
 }
 
 .analysis-sparkline .analysis-sparkline-bar {
   width: min(
-    12px,
+    20px,
     calc((100% - (var(--bar-count) - 1) * var(--bar-gap)) / var(--bar-count))
   );
   height: var(--h);
