@@ -497,3 +497,18 @@ export function updateTrainingLoadFromActivities(activities = []) {
   }
   updateAnalysisDisplay();
 }
+
+export function clearTrainingLoad() {
+  state.last7DaysActivities = [];
+  state.last28DaysActivities = [];
+  state.last7DaysSufferScore = [];
+  state.last28DaysSufferScore = [];
+  state.maxSufferScore = 0;
+  state.trainingLoadActivities = [];
+  state.trainingLoad = {
+    atl: 0,
+    ctl: 0,
+    ratio: null,
+  };
+  updateAnalysisDisplay();
+}

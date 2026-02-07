@@ -25,11 +25,18 @@ function setAuthPending(pending) {
   if (els.logout) els.logout.hidden = pending;
 }
 
+function setAuthRequiredVisibility(authenticated) {
+  document.querySelectorAll("[data-auth-required]").forEach((el) => {
+    el.hidden = !authenticated;
+  });
+}
+
 export function updateAuthUI(authenticated) {
   state.isAuthenticated = authenticated;
   renderConnectButton();
   setAuthPending(false);
   setConnectAttention(!authenticated);
+  setAuthRequiredVisibility(authenticated);
   if (els.profileMenu) {
     els.profileMenu.hidden = !authenticated;
   }

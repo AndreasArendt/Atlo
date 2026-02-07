@@ -26,7 +26,8 @@ import {
 import { initCookieBanner, initPrivacyBanner, clearLocalStateForDev } from "./consent.js";
 import { els } from "./dom.js";
 import { state } from "./state.js";
-import { initGoalCard, syncGoalsFromServer } from "./goals.js";
+import { initGoalCard, syncGoalsFromServer, clearGoalState } from "./goals.js";
+import { clearTrainingLoad } from "./analysis.js";
 
 function isLocalHost() {
   const hostname = window?.location?.hostname || "";
@@ -69,6 +70,9 @@ function handleLogoutCleanup() {
   state.expandedActivities.clear();
   state.currentPage = 1;
   state.maxHeartRate = null;
+  state.restingHeartRate = null;
+  state.trainingLoadActivities = [];
+  state.trainingLoad = { atl: 0, ctl: 0, ratio: null };
   if (els.count) {
     els.count.textContent = "0";
   }
@@ -76,6 +80,8 @@ function handleLogoutCleanup() {
   if (state.mapInstance) {
     renderPolylines(state.mapInstance, []);
   }
+  clearTrainingLoad();
+  clearGoalState();
 }
 
 async function init() {

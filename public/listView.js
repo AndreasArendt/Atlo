@@ -18,7 +18,7 @@ export function updatePaginationControls() {
   els.pageIndicator.textContent = `Page ${state.currentPage} of ${totalPages}`;
   els.prevPage.disabled = state.currentPage === 1;
   els.nextPage.disabled = state.currentPage === totalPages;
-  const shouldShow = state.displayActivities.length > PAGE_SIZE;
+  const shouldShow = state.displayActivities.length > 0 && totalPages > 1;
   els.pagination.hidden = !shouldShow;
 }
 

@@ -822,6 +822,24 @@ export function initGoalCard() {
   syncGoalsFromServer().catch(() => null);
 }
 
+export function clearGoalState() {
+  goalEls = getGoalElements();
+  goals = [];
+  goalLoaded = true;
+  lastActivities = [];
+  lastRangeStart = null;
+  lastRangeEnd = null;
+  periodCache.clear();
+  pendingPeriod.clear();
+  try {
+    window.localStorage.removeItem(GOAL_STORAGE_KEY);
+  } catch {
+    // ignore storage errors
+  }
+  if (!goalEls) return;
+  renderEmptyGoals();
+}
+
 export async function updateGoalCard({ activities = [], rangeStart, rangeEnd } = {}) {
   ensureGoalLoaded();
   goalEls = getGoalElements();

@@ -134,7 +134,7 @@
         <div id="status-spinner" class="map-overlay-spinner" role="status" aria-label="Loading" hidden></div>     
       </div>
       <div class="analysis-strip" id="analysis-strip" aria-label="Analysis highlights">
-        <article class="analysis-card">
+        <article class="analysis-card" data-auth-required hidden>
           <div class="analysis-card-header">
             <p class="label">Training load</p>
           </div>
@@ -152,7 +152,7 @@
             <span class="analysis-sparkline-bar" style="--h: 62%"></span>
           </div>
         </article>
-        <article class="analysis-card goal-card">
+        <article class="analysis-card goal-card" data-auth-required hidden>
           <div class="analysis-card-header goal-card-header">
             <div class="goal-title">
               <p class="label">Goals</p>
@@ -185,7 +185,7 @@
             </button>
           </div>
         </article>
-        <article class="analysis-card">
+        <article class="analysis-card" data-auth-required hidden>
           <div class="analysis-card-header">
             <p class="label">Prediction</p>
             <span class="analysis-meta">Estimate</span>
