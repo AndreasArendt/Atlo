@@ -806,15 +806,16 @@ button:active { transform: translateY(0); }
 
 .analysis-card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-height: 28px;
 }
 
 .analysis-card .label {
   text-align: left;
   padding-right: 0;
-  margin-bottom: 2px;
+  margin-bottom: 0;
   letter-spacing: 0.12em;
   line-height: 1.1;
 }
